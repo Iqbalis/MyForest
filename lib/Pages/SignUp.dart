@@ -5,7 +5,6 @@ import 'package:myforestnew/Resources/utils.dart';
 import 'package:myforestnew/Widgets/text_field_input.dart';
 
 class SignUp extends StatefulWidget {
-
   @override
   _SignupScreen createState() => _SignupScreen();
 }
@@ -13,7 +12,6 @@ class SignUp extends StatefulWidget {
 class _SignupScreen extends State<SignUp> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -21,24 +19,26 @@ class _SignupScreen extends State<SignUp> {
     super.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _usernameController.dispose();
   }
 
-  void signUpUser() async{
+  void signUpUser() async {
     setState(() {
       _isLoading = true;
     });
+
+    // Simulate a short delay
+    await Future.delayed(Duration(seconds: 1));
+
     String res = await AuthMethods().signUpUser(
       email: _emailController.text,
       password: _passwordController.text,
-      //username: _usernameController.text
     );
 
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
     });
 
-    if(res != 'success') {
+    if (res != 'success') {
       showSnackBar(res, context);
     }
   }
@@ -89,6 +89,7 @@ class _SignupScreen extends State<SignUp> {
               textInputType: TextInputType.text,
               textEditingController: _passwordController,
               borderRadius: 15.0,
+              obscureText: true,
             ),
             SizedBox(height: 30),
             ElevatedButton(
@@ -101,7 +102,14 @@ class _SignupScreen extends State<SignUp> {
                 backgroundColor: Colors.white,
               ),
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? SizedBox(
+                height: 20, // Adjust spinner size
+                width: 20, // Adjust spinner size
+                child: CircularProgressIndicator(
+                  color: Colors.black,
+                  strokeWidth: 2, // Thinner spinner stroke
+                ),
+              )
                   : const Text(
                 "Sign Up",
                 style: TextStyle(color: Colors.black),

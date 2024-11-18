@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
+import '../Resources/permit_methods.dart';
 
 class Permit extends StatefulWidget {
   @override
@@ -11,6 +14,14 @@ class _PermitApplicationFormState extends State<Permit> {
   DateTimeRange? selectedDateRange;
   List<Map<String, String>> participants = [];
   String guideNo = ''; // Variable to hold the guide number
+  final PermitMethods _permitMethods = PermitMethods();
+  late String mountain;
+  late String guide;
+  late String date;
+  late String participantsNo;
+  late String name;
+  late String phoneNo;
+  late String emergencyNo;
 
   final List<String> mountains = [
     'Mount Nuang',
@@ -142,6 +153,7 @@ class _PermitApplicationFormState extends State<Permit> {
                       if (selectedMountain.contains('Mount')) // Show only for mountains
                         TextFormField(
                           decoration: _buildRoundedInputDecoration('Guide No'),
+                          style: TextStyle(color: Colors.white),
                           onChanged: (value) {
                             guideNo = value; // Update guide number
                           },
@@ -214,6 +226,7 @@ class _PermitApplicationFormState extends State<Permit> {
                           children: [
                             TextFormField(
                               decoration: _buildRoundedInputDecoration('Full Name'),
+                              style: TextStyle(color: Colors.white),
                               onChanged: (value) {
                                 participants[i]["name"] = value;
                               },
@@ -224,6 +237,7 @@ class _PermitApplicationFormState extends State<Permit> {
                                 Expanded(
                                   child: TextFormField(
                                     decoration: _buildRoundedInputDecoration('Phone Number'),
+                                    style: TextStyle(color: Colors.white),
                                     onChanged: (value) {
                                       participants[i]["phone"] = value;
                                     },
@@ -233,6 +247,7 @@ class _PermitApplicationFormState extends State<Permit> {
                                 Expanded(
                                   child: TextFormField(
                                     decoration: _buildRoundedInputDecoration('Emergency Number'),
+                                    style: TextStyle(color: Colors.white),
                                     onChanged: (value) {
                                       participants[i]["emergency"] = value;
                                     },
@@ -255,17 +270,25 @@ class _PermitApplicationFormState extends State<Permit> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async{
                   if (_formKey.currentState!.validate()) {
-                    // Handle form submission
-                    print("Mountain: $selectedMountain");
-                    print("Date Range: ${selectedDateRange?.start} to ${selectedDateRange?.end}");
-                    for (var participant in participants) {
-                      print("Participant: ${participant['name']}, Phone: ${participant['phone']}, Emergency: ${participant['emergency']}");
-                    }
-                    if (selectedMountain.contains('Mount')) {
-                      print("Guide No: $guideNo"); // Output guide number only if applicable
-                    }
+                    final String startDate = selectedDateRange != null
+                        ? selectedDateRange!.start.toString().split(' ')[0]
+                        : '';
+                    final String endDate = selectedDateRange != null
+                        ? selectedDateRange!.end.toString().split(' ')[0]
+                        : '';
+
+                    String response = await _permitMethods.permitUser(
+                      mountain: selectedMountain,
+                      guide: guideNo.isNotEmpty ? guideNo : "No guide specified",
+                      date: '$startDate to $endDate',
+                      participantsNo: numberOfParticipants.toString(),
+                      participants: participants, // Pass the participants list
+                    );
+
+                    // Show a confirmation or error message
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response)));
                   }
                 },
                 child: Text('Submit'),
