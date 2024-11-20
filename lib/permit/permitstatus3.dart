@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myforestnew/permit/paymentGateway.dart';
 
 class Permitstatus3 extends StatelessWidget {
   @override
@@ -56,28 +57,39 @@ class PermitApplicationScreen extends StatelessWidget {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Container(
-          height: 60, // Fixed height for the rounded box
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Download E-Permit',
-                  style: TextStyle(color: Colors.black, fontSize: 18),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PaymentGatewayScreen()), // Example action
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Downloading E-Permit...')),
+            );
+          },
+          child: Container(
+            height: 60, // Fixed height for the rounded box
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Download E-Permit',
+                    style: TextStyle(color: Colors.black, fontSize: 18),
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward,
-                color: Colors.black,
-                size: 24,
-              ),
-            ],
+                Icon(
+                  Icons.arrow_forward,
+                  color: Colors.black,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -93,20 +105,9 @@ class StepIndicator extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 15,
-          backgroundColor: Colors.grey[800], // Darker grey for the first circle
-          child: Text(
-            '1',
-            style: TextStyle(color: Colors.white), // Text color for contrast
-          ),
-        ),
-        SizedBox(width: 10),
-        Container(width: 50, height: 2, color: Colors.grey[800]),
-        SizedBox(width: 10),
-        CircleAvatar(
-          radius: 15,
           backgroundColor: Colors.grey[800],
           child: Text(
-            '2',
+            '1',
             style: TextStyle(color: Colors.white),
           ),
         ),
@@ -117,7 +118,7 @@ class StepIndicator extends StatelessWidget {
           radius: 15,
           backgroundColor: Colors.grey[800],
           child: Text(
-            '3',
+            '2',
             style: TextStyle(color: Colors.white),
           ),
         ),

@@ -5,6 +5,8 @@ import 'package:myforestnew/Pages/savedpage.dart';
 import 'package:myforestnew/Pages/setting.dart';
 import 'package:myforestnew/permit/permitstatus1.dart';
 
+import '../permit/permitPending.dart';
+
 class ProfilePage extends StatelessWidget {
   final double nameFontSize;
   final double detailsFontSize;
@@ -109,7 +111,7 @@ class ProfilePage extends StatelessWidget {
                 // Replace with the action you want, e.g., navigate to a PermitStatus page
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Permitstatus1()), // Example action
+                  MaterialPageRoute(builder: (context) => permitStatus()), // Example action
                 );
               },
               child: Padding(

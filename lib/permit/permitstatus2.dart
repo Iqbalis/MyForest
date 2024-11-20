@@ -67,20 +67,9 @@ class StepIndicator extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 15,
-          backgroundColor: Colors.grey[800], // Darker grey for the first circle
-          child: Text(
-            '1',
-            style: TextStyle(color: Colors.white), // Text color for contrast
-          ),
-        ),
-        SizedBox(width: 10),
-        Container(width: 50, height: 2, color: Colors.grey[800]),
-        SizedBox(width: 10),
-        CircleAvatar(
-          radius: 15,
           backgroundColor: Colors.grey[800],
           child: Text(
-            '2',
+            '1',
             style: TextStyle(color: Colors.white),
           ),
         ),
@@ -91,7 +80,7 @@ class StepIndicator extends StatelessWidget {
           radius: 15,
           backgroundColor: Colors.grey,
           child: Text(
-            '3',
+            '2',
             style: TextStyle(color: Colors.white),
           ),
         ),

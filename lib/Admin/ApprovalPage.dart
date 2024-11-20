@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myforestnew/Admin/detailApplication.dart';
 
 class PermitsListPage extends StatefulWidget {
   @override
@@ -7,32 +9,57 @@ class PermitsListPage extends StatefulWidget {
 
 class _PermitsListPageState extends State<PermitsListPage> {
   final TextEditingController searchController = TextEditingController();
-  final List<Map<String, dynamic>> permits = [
-    {
-      'name': 'Adib said',
-      'details': 'Mount Nuang',
-    },
-    {
-      'name': 'Iqbal ishak',
-      'details': 'Mount Hitam',
-    },
-    {
-      'name': 'Tengku Zarul',
-      'details': 'Mount Hitam',
-    },
-    {
-      'name': 'Syafiy',
-      'details': 'Mount Nuang',
-    }
-  ];
+  List<Map<String, dynamic>> permits = [];
   List<Map<String, dynamic>> filteredPermits = [];
 
   @override
   void initState() {
     super.initState();
-    filteredPermits = permits;
+    fetchPermits();
   }
 
+  /// Fetch permits from Firestore
+  Future<void> fetchPermits() async {
+    try {
+      final QuerySnapshot snapshot =
+      await FirebaseFirestore.instance.collection('permits').get();
+
+      final List<Map<String, dynamic>> fetchedPermits = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          'approved': data['approved'] ?? false,
+          'date': data['date'] ?? '',
+          'guide': data['guide'] ?? '',
+          'mountain': data['mountain'] ?? '',
+          'participants': data['participants'] ?? [],
+        };
+      }).toList();
+
+      setState(() {
+        permits = fetchedPermits;
+        filteredPermits = fetchedPermits;
+      });
+    } catch (e) {
+      print("Error fetching permits: $e");
+    }
+  }
+
+  /// Update permit status in Firestore
+  Future<void> updatePermitStatus(String permitId, String status) async {
+    try {
+      await FirebaseFirestore.instance.collection('permits').doc(permitId).update({
+        'status': status,
+      });
+
+      // Refresh data after updating
+      fetchPermits();
+    } catch (e) {
+      print("Error updating permit status: $e");
+    }
+  }
+
+  /// Filter permits based on search query
   void filterSearch(String query) {
     setState(() {
       if (query.isEmpty) {
@@ -40,7 +67,15 @@ class _PermitsListPageState extends State<PermitsListPage> {
       } else {
         filteredPermits = permits
             .where((permit) =>
-            permit['name']!.toLowerCase().contains(query.toLowerCase()))
+        permit['participants']
+            .any((participant) => participant['name']
+            .toString()
+            .toLowerCase()
+            .contains(query.toLowerCase())) ||
+            permit['mountain']
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()))
             .toList();
       }
     });
@@ -90,7 +125,14 @@ class _PermitsListPageState extends State<PermitsListPage> {
             SizedBox(height: 16.0),
             // Permits List
             Expanded(
-              child: ListView.builder(
+              child: filteredPermits.isEmpty
+                  ? Center(
+                child: Text(
+                  "No application found",
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+                  : ListView.builder(
                 itemCount: filteredPermits.length,
                 itemBuilder: (context, index) {
                   final permit = filteredPermits[index];
@@ -120,27 +162,46 @@ class _PermitsListPageState extends State<PermitsListPage> {
                           ),
                         ),
                         SizedBox(width: 12.0),
-                        // Name and details
+                        // Permit details
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                permit['name'],
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.0,
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => detailApplication(
+                                        documentId: permit['id'],
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  permit['participants'].isNotEmpty
+                                      ? permit['participants'][0]['name'] ?? "Unknown"
+                                      : "No Participants", // Fallback if no participants
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16.0,
+                                    decoration: TextDecoration.underline,
+                                  ),
                                 ),
                               ),
                               Text(
-                                permit['details'],
+                                "Location: ${permit['mountain']}",
                                 style: TextStyle(
                                   color: Colors.grey[700],
                                   fontSize: 14.0,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                "Date: ${permit['date']}",
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14.0,
+                                ),
                               ),
                             ],
                           ),
@@ -152,13 +213,13 @@ class _PermitsListPageState extends State<PermitsListPage> {
                             IconButton(
                               icon: Icon(Icons.close, color: Colors.red),
                               onPressed: () {
-                                // Handle reject action
+                                updatePermitStatus(permit['id'], "rejected");
                               },
                             ),
                             IconButton(
                               icon: Icon(Icons.check, color: Colors.green),
                               onPressed: () {
-                                // Handle accept action
+                                updatePermitStatus(permit['id'], "approved");
                               },
                             ),
                           ],

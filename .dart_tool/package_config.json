@@ -56,6 +56,24 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "cloud_functions",
+      "rootUri": "file:///C:/Users/HP%20VICTUS/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_functions-5.1.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "cloud_functions_platform_interface",
+      "rootUri": "file:///C:/Users/HP%20VICTUS/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_functions_platform_interface-5.5.39",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "cloud_functions_web",
+      "rootUri": "file:///C:/Users/HP%20VICTUS/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_functions_web-4.10.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "collection",
       "rootUri": "file:///C:/Users/HP%20VICTUS/AppData/Local/Pub/Cache/hosted/pub.dev/collection-1.18.0",
       "packageUri": "lib/",
@@ -416,7 +434,7 @@
       "languageVersion": "3.5"
     }
   ],
-  "generated": "2024-11-15T07:55:26.448361Z",
+  "generated": "2024-11-19T08:09:37.325320Z",
   "generator": "pub",
   "generatorVersion": "3.5.3",
   "flutterRoot": "file:///C:/src/flutter",

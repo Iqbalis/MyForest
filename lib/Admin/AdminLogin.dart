@@ -5,6 +5,8 @@ import 'package:myforestnew/Resources/auth_method.dart';
 import 'package:myforestnew/Resources/utils.dart';
 import 'package:myforestnew/Widgets/text_field_input.dart';
 
+import 'homeadmin.dart';
+
 class AdminLoginPage extends StatefulWidget {
 
   @override
@@ -23,26 +25,49 @@ class __LogininScreenState extends State<AdminLoginPage> {
     _passwordController.dispose();
   }
 
-  void loginUser() async{
+  void loginUser() async {
     setState(() {
       _isLoading = true;
     });
-    String res = await AuthMethods().loginUser(
+
+    try {
+      // Attempt to log in the user
+      String res = await AuthMethods().loginUser(
         email: _emailController.text,
-        password: _passwordController.text
-    );
-
-    if(res == "success") {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
+        password: _passwordController.text,
       );
-    } else {
-      //
-      showSnackBar(res, context);
 
+      if (res == "success") {
+        // Fetch user data
+        Map<String, dynamic>? userData = await AuthMethods().getUserData();
+
+        if (userData != null) {
+          // Check the user's role
+          if (userData['role'] == 'admin') {
+            // Navigate to Admin Home Page
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => HomeAdmin(),
+              ),
+            );
+          } else {
+            // Navigate to User Home Page
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => HomePage(),
+              ),
+            );
+          }
+        } else {
+          showSnackBar("Failed to fetch user data.", context);
+        }
+      } else {
+        showSnackBar(res, context);
+      }
+    } catch (e) {
+      showSnackBar("An error occurred: $e", context);
     }
+
     setState(() {
       _isLoading = false;
     });

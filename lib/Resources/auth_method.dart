@@ -26,6 +26,7 @@ class AuthMethods {
           //'username': username,
           'uid': cred.user!.uid,
           'email': email,
+          'role': "user"
         });
         res = "success";
       }
@@ -53,5 +54,33 @@ class AuthMethods {
       res = err.toString();
     }
     return res;
+  }
+
+  Future<Map<String, dynamic>?> getUserData() async {
+    try {
+      // Get the currently logged-in user
+      User? currentUser = _auth.currentUser;
+
+      if (currentUser != null) {
+        // Fetch user data from Firestore
+        DocumentSnapshot userDoc = await _firestore
+            .collection('users') // Replace with your Firestore collection name
+            .doc(currentUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          return userDoc.data() as Map<String, dynamic>; // Return user data as a map
+        } else {
+          print("User document does not exist.");
+          return null; // User document doesn't exist
+        }
+      } else {
+        print("No user logged in.");
+        return null; // No user logged in
+      }
+    } catch (e) {
+      print("Error fetching user data: $e");
+      return null; // Return null on error
+    }
   }
 }

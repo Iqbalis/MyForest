@@ -184,7 +184,7 @@ class _PermitApplicationFormState extends State<Permit> {
                               decoration: _buildRoundedInputDecoration('To:'),
                               readOnly: true,
                               style: TextStyle(
-                              color: Colors.white,
+                                color: Colors.white,
                               ),
                               controller: TextEditingController(
                                   text: selectedDateRange != null
