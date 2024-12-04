@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myforestnew/Admin/homeadmin.dart';
+import 'package:myforestnew/Pages/navigation.dart';
 import 'package:myforestnew/permit/Permit.dart';
 import 'package:myforestnew/Pages/profile.dart';
 import 'package:myforestnew/Pages/savedpage.dart';
@@ -324,7 +325,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => HomeAdmin()),
+                  MaterialPageRoute(builder: (context) => Navigation()),
                 );
               },
               child: Image.asset(

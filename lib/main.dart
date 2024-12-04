@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:myforestnew/Pages/HomPage.dart';
 import 'Pages/GetStarted.dart';
 
 void main() async{
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Getstarted(), // Use the separated OnboardingScreen
+      home: HomePage(), // Use the separated OnboardingScreen
       debugShowCheckedModeBanner: false, // Hide the debug banner
     );
   }
