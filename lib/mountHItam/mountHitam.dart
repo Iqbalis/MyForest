@@ -1,12 +1,14 @@
+
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:myforestnew/mountHItam/hitamTrail.dart';
 import 'package:myforestnew/permit/Permit.dart';
-import 'package:myforestnew/Pages/savedpage.dart';
 import 'package:http/http.dart' as http;
 import 'package:myforestnew/mountHItam/forecastHitam.dart';
 import 'package:myforestnew/mountHItam/hitamLoc.dart';
 import 'dart:convert';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class mountHitam extends StatefulWidget {
   @override
@@ -26,6 +28,7 @@ class _HitamPageState extends State<mountHitam> {
     'assets/hitam/hitam3.jpg',
   ];
 
+
   @override
   void initState() {
     super.initState();
@@ -33,8 +36,34 @@ class _HitamPageState extends State<mountHitam> {
       _showPopup(context);
     });
     fetchWeatherData();
+    _checkIfSaved();
   }
+  bool isSaved = false;
+  String? savedDocumentId;
 
+  Future<void> _checkIfSaved() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        // Query Firestore to see if the mount is already saved by the user
+        final query = await FirebaseFirestore.instance
+            .collection('saved_mounts')
+            .where('name', isEqualTo: 'Mount Hitam') // Match the mount name
+            .where('userId', isEqualTo: user.uid) // Match the current user
+            .get();
+
+        if (query.docs.isNotEmpty) {
+          setState(() {
+            isSaved = true;
+            savedDocumentId = query.docs.first.id;
+          });
+        }
+      } catch (e) {
+        print('Error checking if mount is saved: $e');
+      }
+    }
+  }
   Future<void> fetchWeatherData() async {
     const String apiKey = '8f5b43dd3e53fb197df8ed5a8cae93c5';
     const String location = 'Hulu Langat';
@@ -100,6 +129,7 @@ class _HitamPageState extends State<mountHitam> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,16 +177,71 @@ class _HitamPageState extends State<mountHitam> {
                 shape: BoxShape.circle,
                 color: Colors.black, // Background color of the circle
               ),
-              child: IconButton(
+              child:  IconButton(
                 icon: Icon(
-                    Icons.bookmark_outline, color: Colors.white, size: 30),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SavedPage(),
-                    ),
-                  );
+                  isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                onPressed: () async {
+                  final user = FirebaseAuth.instance.currentUser;
+
+                  if (user != null) {
+                    final mountData = {
+                      'name': 'Mount Hitam',
+                      'distance': '13.2 KM',
+                      'description': 'Bukit Sungai Putih Forest Reserve',
+                      'images': [
+                        'assets/hitam/hitam1.jpg',
+                        'assets/hitam/hitam2.jpg',
+                        'assets/hitam/hitam3.jpg',
+                      ],
+                      'userId': user.uid,
+                    };
+
+                    try {
+                      if (isSaved) {
+                        // Unsaving the mount
+                        if (savedDocumentId != null) {
+                          await FirebaseFirestore.instance
+                              .collection('saved_mounts')
+                              .doc(savedDocumentId)
+                              .delete();
+
+                          setState(() {
+                            isSaved = false;
+                            savedDocumentId = null;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Mount unsaved successfully!')),
+                          );
+                        }
+                      } else {
+                        // Saving the mount
+                        final docRef = await FirebaseFirestore.instance
+                            .collection('saved_mounts')
+                            .add(mountData);
+
+                        setState(() {
+                          isSaved = true;
+                          savedDocumentId = docRef.id;
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Mount Hitam saved successfully!')),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Operation failed: $e')),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Please log in to save this mount.')),
+                    );
+                  }
                 },
               ),
             ),
@@ -237,7 +322,10 @@ class _HitamPageState extends State<mountHitam> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  // Implement "Show Trail" action here
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => HitamTrail()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white24,

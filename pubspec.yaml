@@ -41,6 +41,7 @@ dependencies:
   flutter_map_location_marker: ^9.1.1
   gpx: ^2.2.2
   xml: ^6.5.0
+  fl_chart: ^0.69.2
 
 
 
@@ -110,6 +111,9 @@ flutter:
       - assets/my.png
       - assets/profile.jpg
       - assets/gpxFile/iiumTrail.xml
+      - assets/gpxFile/nuang.xml
+      - assets/gpxFile/hitam.xml
+      - assets/fpx.png
 
       
 

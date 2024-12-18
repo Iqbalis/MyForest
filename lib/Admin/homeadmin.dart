@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:myforestnew/Admin/permitAdmin.dart';
-import 'package:myforestnew/permit/Permit.dart';
 import 'package:myforestnew/Pages/profile.dart';
 import 'package:myforestnew/bukitAyam/bukitAyam.dart';
 import 'package:myforestnew/bukitBintang/bukitBintang.dart';

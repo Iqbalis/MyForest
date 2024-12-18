@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:myforestnew/Pages/HomPage.dart';
 import 'Pages/GetStarted.dart';
+import 'Pages/navigation.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
