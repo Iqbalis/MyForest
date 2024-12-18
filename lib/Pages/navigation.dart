@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:myforestnew/Pages/savedpage.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -133,9 +134,13 @@ class _NavigationScreen extends State<Navigation> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pop(); // Navigates back when pressed
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
+            );
           },
         ),
+
         title: const Text(
           "Map with Directions",
           style: TextStyle(fontSize: 20, color: Colors.white),

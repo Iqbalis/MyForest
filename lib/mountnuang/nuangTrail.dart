@@ -16,6 +16,10 @@ class NuangTrail extends StatefulWidget {
 
 class _NuangTrailScreen extends State<NuangTrail> {
   final MapController _mapController = MapController();
+
+  bool _isLoading = true;
+  final Location _locationService = Location();
+  LatLng? _currentLocation;
   List<LatLng> _gpxRoute = [];
   List<double> _elevations = [];
   bool _isTracking = false; // Tracking state
@@ -30,7 +34,38 @@ class _NuangTrailScreen extends State<NuangTrail> {
   @override
   void initState() {
     super.initState();
+    _initializeLocation();
     _loadGPXRoute();
+  }
+
+  /// Initialize and fetch user location
+  Future<void> _initializeLocation() async {
+    if (!await _checkAndRequestPermissions()) return;
+
+    _locationService.onLocationChanged.listen((LocationData locationData) {
+      if (locationData.latitude != null && locationData.longitude != null) {
+        setState(() {
+          _currentLocation =
+              LatLng(locationData.latitude!, locationData.longitude!);
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  /// Check and request permissions
+  Future<bool> _checkAndRequestPermissions() async {
+    bool serviceEnabled = await _locationService.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await _locationService.requestService();
+      if (!serviceEnabled) return false;
+    }
+    PermissionStatus permissionGranted = await _locationService.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted == await _locationService.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) return false;
+    }
+    return true;
   }
 
   Future<void> _loadGPXRoute() async {
