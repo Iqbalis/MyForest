@@ -4,7 +4,8 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 import 'package:location/location.dart';
-import '../Resources/elevation_profile.dart'; // Import the ElevationProfile widget
+import 'dart:async';
+import '../Resources/elevation_profile.dart';
 
 class NuangTrail extends StatefulWidget {
   const NuangTrail({Key? key}) : super(key: key);
@@ -16,7 +17,15 @@ class NuangTrail extends StatefulWidget {
 class _NuangTrailScreen extends State<NuangTrail> {
   final MapController _mapController = MapController();
   List<LatLng> _gpxRoute = [];
-  List<double> _elevations = []; // Store elevation data
+  List<double> _elevations = [];
+  bool _isTracking = false; // Tracking state
+  bool _isPaused = false; // Pause state
+  Timer? _timer;
+  int _elapsedSeconds = 0; // Elapsed time
+  double _totalDistance = 0.0; // Total distance
+  LatLng? _lastLocation;
+
+  final Location _location = Location();
 
   @override
   void initState() {
@@ -26,12 +35,10 @@ class _NuangTrailScreen extends State<NuangTrail> {
 
   Future<void> _loadGPXRoute() async {
     try {
-      // Load GPX file
       final String gpxString =
       await rootBundle.loadString('assets/gpxFile/nuang.xml');
       final document = XmlDocument.parse(gpxString);
 
-      // Extract route points and elevations
       final List<LatLng> trailCoordinates = [];
       final List<double> elevations = [];
 
@@ -39,7 +46,8 @@ class _NuangTrailScreen extends State<NuangTrail> {
       for (var waypoint in waypoints) {
         final lat = double.parse(waypoint.getAttribute('lat')!);
         final lon = double.parse(waypoint.getAttribute('lon')!);
-        final ele = double.tryParse(waypoint.findElements('ele').first.text) ?? 0.0;
+        final ele =
+            double.tryParse(waypoint.findElements('ele').first.text) ?? 0.0;
 
         trailCoordinates.add(LatLng(lat, lon));
         elevations.add(ele);
@@ -54,6 +62,73 @@ class _NuangTrailScreen extends State<NuangTrail> {
     }
   }
 
+  void _startTracking() {
+    setState(() {
+      _isTracking = true;
+      _isPaused = false;
+    });
+
+    // Start timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedSeconds++;
+      });
+    });
+
+    // Start location tracking
+    _location.onLocationChanged.listen((LocationData locationData) {
+      if (locationData.latitude != null && locationData.longitude != null) {
+        LatLng currentLocation =
+        LatLng(locationData.latitude!, locationData.longitude!);
+
+        if (_lastLocation != null) {
+          final double distance = const Distance()
+              .as(LengthUnit.Meter, _lastLocation!, currentLocation);
+          setState(() {
+            _totalDistance += distance / 1000;;
+          });
+        }
+        _lastLocation = currentLocation;
+      }
+    });
+  }
+
+  void _pauseTracking() {
+    setState(() {
+      _isPaused = true;
+      _isTracking = false;
+    });
+    print("_isPaused: $_isPaused, _isTracking: $_isTracking");
+    _timer?.cancel();
+  }
+
+  void _resumeTracking() {
+    setState(() {
+      _isPaused = false;
+      _isTracking = true;
+    });
+    print("_isPaused: $_isPaused, _isTracking: $_isTracking");
+    _startTracking(); // Restart tracking
+  }
+
+  void _stopTracking() {
+    setState(() {
+      _isTracking = false;
+      _isPaused = false;
+      _elapsedSeconds = 0;
+      _totalDistance = 0.0;
+      _lastLocation = null;
+    });
+    _timer?.cancel();
+  }
+
+  String _formatTime(int seconds) {
+    final int hours = seconds ~/ 3600;
+    final int minutes = (seconds % 3600) ~/ 60;
+    final int secs = seconds % 60;
+    return "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  }
+
   LatLng _calculateRouteCenter(List<LatLng> route) {
     double latSum = 0;
     double lonSum = 0;
@@ -66,12 +141,9 @@ class _NuangTrailScreen extends State<NuangTrail> {
     double centerLat = latSum / route.length;
     double centerLon = lonSum / route.length;
 
-    // Adjust the center latitude upwards slightly
-    centerLat -= 0.018; // Adjust this value as needed
-
+    centerLat -= 0.018; // Adjust center upwards slightly
     return LatLng(centerLat, centerLon);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -79,12 +151,11 @@ class _NuangTrailScreen extends State<NuangTrail> {
       appBar: AppBar(
         title: const Text('Nuang Trail Map'),
       ),
-      body: _gpxRoute.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      body: Stack(
         children: [
-          // Map View
-          FlutterMap(
+          _gpxRoute.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _calculateRouteCenter(_gpxRoute),
@@ -92,7 +163,8 @@ class _NuangTrailScreen extends State<NuangTrail> {
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                urlTemplate:
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
               ),
               PolylineLayer(
                 polylines: [
@@ -106,63 +178,96 @@ class _NuangTrailScreen extends State<NuangTrail> {
             ],
           ),
 
-          // Elevation Profile and Start Button at the Bottom
+          // Bottom Container with Elevation Profile and Time/Distance
           Align(
             alignment: Alignment.bottomCenter,
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Ensures it fits the content
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Elevation Profile Container
+                // Elevation Profile
                 Container(
-                  height: MediaQuery.of(context).size.height * 0.30,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(15),
-                      topRight: Radius.circular(15),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 5,
-                        offset: Offset(0, -2),
-                      ),
-                    ],
-                  ),
+                  height: MediaQuery.of(context).size.height * 0.25,
+                  width: double.infinity,
+                  color: Colors.white.withOpacity(0.9),
                   child: _elevations.isNotEmpty
                       ? ElevationProfile(elevations: _elevations)
                       : const Center(child: CircularProgressIndicator()),
                 ),
 
-                // "Start" Button Below the Elevation Profile
-                Padding(
-                  padding: const EdgeInsets.only(top: 10.0, bottom: 20.0), // Spacing
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Define action when the button is pressed
-                      print("Start button pressed!");
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue, // Button background color
-                      foregroundColor: Colors.white, // Button text color
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 12), // Button padding
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Rounded corners
+                // Time and Distance with white background
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16), // Adjust padding for better fit
+                  width: double.infinity, // Ensure it takes up the full width
+                  child: Column(
+                    children: [
+                      Text(
+                        "Time: ${_formatTime(_elapsedSeconds)}",
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    child: const Text(
-                      "Start",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      const SizedBox(height: 4), // Space between time and distance
+                      Text(
+                        "Distance: ${_totalDistance.toStringAsFixed(2)} km",
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Start, Pause, Resume, Stop Buttons
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  width: double.infinity,
+                  child: _isPaused
+                      ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _resumeTracking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text("Resume"),
+                      ),
+                      ElevatedButton(
+                        onPressed: _stopTracking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text("Stop"),
+                      ),
+                    ],
+                  )
+                      : Center(
+                    child: ElevatedButton(
+                      onPressed:
+                      _isTracking ? _pauseTracking : _startTracking,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                        _isTracking ? Colors.red : Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(_isTracking ? "Pause" : "Start"),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
         ],
       ),
     );
+  }
+
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }
