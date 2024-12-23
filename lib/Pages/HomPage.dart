@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:myforestnew/Pages/navigation.dart';
 import 'package:myforestnew/permit/Permit.dart';
 import 'package:myforestnew/Pages/profile.dart';
@@ -9,6 +10,10 @@ import 'package:myforestnew/bukitLagong/bukitLagong.dart';
 import 'package:myforestnew/bukitPau/bukitPau.dart';
 import 'package:myforestnew/mountHItam/mountHitam.dart';
 import 'package:myforestnew/mountnuang/mountnuang.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 
 class HomePage extends StatefulWidget {
   @override
@@ -28,6 +33,7 @@ class _HomePageState extends State<HomePage> {
         'assets/nuang/nuang3.jpg',
       ],
       'detailPage': MountNuangPage(),
+      'isSaved': false,
     },
     {
       'name': 'Mount Hitam',
@@ -39,6 +45,7 @@ class _HomePageState extends State<HomePage> {
         'assets/hitam/hitam3.jpg',
       ],
       'detailPage': mountHitam(),
+      'isSaved': false,
     },
     {
       'name': 'Bukit Lagong',
@@ -50,6 +57,7 @@ class _HomePageState extends State<HomePage> {
         'assets/lagong/lagong3.jpg',
       ],
       'detailPage': bukitLagong(),
+      'isSaved': false,
     },
     {
       'name': 'Bukit Pau',
@@ -61,6 +69,7 @@ class _HomePageState extends State<HomePage> {
         'assets/pau/pau3.jpg',
       ],
       'detailPage': bukitPau(),
+      'isSaved': false,
     },
     {
       'name': 'Bukit Guling Ayam',
@@ -72,6 +81,7 @@ class _HomePageState extends State<HomePage> {
         'assets/ayam/ayam3.jpg',
       ],
       'detailPage': bukitAyam(),
+      'isSaved': false,
     },
     {
       'name': 'Bukit Sri Bintang',
@@ -83,8 +93,26 @@ class _HomePageState extends State<HomePage> {
         'assets/bintang/bintang3.png',
       ],
       'detailPage': bukitBintang(),
+      'isSaved': false,
     },
   ];
+  bool isSaved = false;
+  String? savedDocumentId;
+  Stream<List<String>> _getSavedMountainsStream() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return Stream.value([]);
+
+    return FirebaseFirestore.instance
+        .collection('saved_mounts')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => doc['name'] as String).toList();
+    });
+  }
+
+
   List<Map<String, dynamic>> _filteredMountains = [];
   List<int> _currentImageIndex = [];
 
@@ -94,7 +122,9 @@ class _HomePageState extends State<HomePage> {
     _currentImageIndex = List.filled(mountains.length, 0);
     _filteredMountains = mountains;
     _searchController.addListener(_filterMountains);
+    _getSavedMountainsStream();
   }
+
 
   void _filterMountains() {
     final query = _searchController.text.toLowerCase();
@@ -104,7 +134,24 @@ class _HomePageState extends State<HomePage> {
       }).toList();
     });
   }
+  void fetchSavedMountains() async {
+    final user = FirebaseAuth.instance.currentUser;
 
+    if (user == null) return;
+
+    final savedDocs = await FirebaseFirestore.instance
+        .collection('saved_mounts')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+
+    final savedNames = savedDocs.docs.map((doc) => doc['name']).toSet();
+
+    setState(() {
+      for (var mountain in mountains) { // Assuming 'mountains' is your data list
+        mountain['isSaved'] = savedNames.contains(mountain['name']);
+      }
+    });
+  }
   int _currentIndex = 4;
   final PageController _pageController = PageController(initialPage: 4);
 
@@ -128,24 +175,16 @@ class _HomePageState extends State<HomePage> {
         children: [
           Icon(
             icon,
-            color: isSelected ? Colors.black87 : Colors.black45,
+            color: isSelected ? Color(0xFFFFFFFF) : Color(0xFFB0B0B0),
             size: 30,
           ),
           if (isSelected)
-            Container(
-              margin: EdgeInsets.only(top: 2),
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Color(0xFF81b1ce),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: Color(0xFF000035),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              label,
+              style: TextStyle(
+                color: Color(0xFFFFFFFF),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
               ),
             ),
         ],
@@ -161,230 +200,291 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: _currentIndex == 4
-          ? AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _searchController,
-              style: TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search for a mountain',
-                hintStyle: TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.grey[800],
-                prefixIcon: Icon(Icons.search, color: Colors.white),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
+    return StreamBuilder<List<String>>(
+      stream: _getSavedMountainsStream(),
+      builder: (context, snapshot) {
+        final savedMountains = snapshot.data ?? [];
+
+        return Scaffold(
+          backgroundColor: Color(0xFF1F1F1F),
+          appBar: _currentIndex == 4
+              ? AppBar(
+            backgroundColor: Color(0xFF1F1F1F),
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _searchController,
+                  style: TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search for a mountain',
+                    hintStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.grey[800],
+                    prefixIcon: Icon(Icons.search, color: Colors.white),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-        toolbarHeight: 90, // Adjust this to control the AppBar's overall height
-      )
-          : null,
+            toolbarHeight: 90, // Adjust this to control the AppBar's overall height
+          )
+              : null,
 
-      body: Stack(
-        children: [
-          PageView(
-            controller: _pageController,
-            physics: NeverScrollableScrollPhysics(),
+          body: Stack(
             children: [
-              Permit(),
-              Navigation(),
-              SavedPage(),
-              ProfilePage(),
-              SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Column(
+              PageView(
+                controller: _pageController,
+                physics: NeverScrollableScrollPhysics(),
+                children: [
+                  Permit(),
+                  Navigation(),
+                  SavedPage(),
+                  ProfilePage(),
+                  SingleChildScrollView(
+                    child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
+                        Column(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              child: Text(
-                                'Hello, Adib said',
-                                style: TextStyle(color: Colors.white, fontSize: 20),
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                  child: Text(
+                                    'Hello, Adib said',
+                                    style: TextStyle(color: Colors.white, fontSize: 20),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _filteredMountains.length,
-                          itemBuilder: (context, index) {
-                            final mountain = _filteredMountains[index];
-                            final String name = mountain['name'] ?? 'Unknown Mountain';
-                            final String distance = mountain['distance'] ?? 'N/A';
-                            final String description = mountain['description'] ?? 'No description available';
-                            final List<String> images = mountain['images']?.cast<String>() ?? [];
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: _filteredMountains.length,
+                              itemBuilder: (context, index) {
+                                final mountain = _filteredMountains[index];
+                                final isSaved = savedMountains.contains(mountain['name']);
+                                final String name = mountain['name'] ?? 'Unknown Mountain';
+                                final String distance = mountain['distance'] ?? 'N/A';
+                                final String description = mountain['description'] ?? 'No description available';
+                                final List<String> images = mountain['images']?.cast<String>() ?? [];
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    height: 250,
-                                    child: Stack(
-                                      alignment: Alignment.bottomCenter,
-                                      children: [
-                                        images.isNotEmpty
-                                            ? PageView.builder(
-                                          itemCount: images.length,
-                                          onPageChanged: (pageIndex) {
-                                            setState(() {
-                                              _currentImageIndex[index] = pageIndex;
-                                            });
-                                          },
-                                          itemBuilder: (context, pageIndex) {
-                                            return GestureDetector(
-                                              onTap: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                    mountain['detailPage'],
-                                                  ),
-                                                );
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        height: 250,
+                                        child: Stack(
+                                          alignment: Alignment.bottomCenter,
+                                          children: [
+                                            images.isNotEmpty
+                                                ? PageView.builder(
+                                              itemCount: images.length,
+                                              onPageChanged: (pageIndex) {
+                                                setState(() {
+                                                  _currentImageIndex[index] = pageIndex;
+                                                });
                                               },
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(10.0),
-                                                child: Image.asset(
-                                                  images[pageIndex],
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Center(
-                                                      child: Text(
-                                                        'Image not found',
-                                                        style: TextStyle(color: Colors.white),
+                                              itemBuilder: (context, pageIndex) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => mountain['detailPage'],
                                                       ),
                                                     );
                                                   },
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(10.0),
+                                                    child: Image.asset(
+                                                      images[pageIndex],
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Center(
+                                                          child: Text(
+                                                            'Image not found',
+                                                            style: TextStyle(color: Colors.white),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            )
+                                                : Center(
+                                              child: Text(
+                                                'No images available',
+                                                style: TextStyle(color: Colors.grey),
+                                              ),
+                                            ),
+                                            // Saved button
+                                            Positioned(
+                                              top: 10,
+                                              right: 10,
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  final user = FirebaseAuth.instance.currentUser;
+
+                                                  if (user == null) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(content: Text('Please log in to save mountains')),
+                                                    );
+                                                    return;
+                                                  }
+
+                                                  HapticFeedback.vibrate();
+
+                                                  if (isSaved) {
+                                                    // Remove saved mountain
+                                                    final querySnapshot = await FirebaseFirestore.instance
+                                                        .collection('saved_mounts')
+                                                        .where('userId', isEqualTo: user.uid)
+                                                        .where('name', isEqualTo: mountain['name'])
+                                                        .get();
+
+                                                    for (var doc in querySnapshot.docs) {
+                                                      await doc.reference.delete();
+                                                    }
+                                                  } else {
+                                                    // Add saved mountain
+                                                    await FirebaseFirestore.instance.collection('saved_mounts').add({
+                                                      'userId': user.uid,
+                                                      'name': mountain['name'],
+                                                      'distance': mountain['distance'],
+                                                      'description': mountain['description'],
+                                                      'images': mountain['images'],
+                                                      'savedAt': DateTime.now(),
+                                                    });
+                                                  }
+                                                },
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  padding: EdgeInsets.all(6.0),
+                                                  child: Icon(
+                                                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                                    color: Colors.white,
+                                                    size: 30.0,
+                                                  ),
                                                 ),
                                               ),
-                                            );
-                                          },
-                                        )
-                                            : Center(
-                                          child: Text(
-                                            'No images available',
-                                            style: TextStyle(color: Colors.grey),
-                                          ),
+                                            ),
+                                            Positioned(
+                                              bottom: 10,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: List.generate(
+                                                  images.length,
+                                                      (dotIndex) => buildDot(dotIndex, _currentImageIndex[index]),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Positioned(
-                                          bottom: 10,
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: List.generate(
-                                              images.length,
-                                                  (dotIndex) =>
-                                                  buildDot(dotIndex, _currentImageIndex[index]),
+                                      ),
+
+                                      SizedBox(height: 10),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            name,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: 10),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        name,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                          Text(
+                                            distance,
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       Text(
-                                        distance,
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                        ),
+                                        description,
+                                        style: TextStyle(color: Colors.grey),
                                       ),
+                                      SizedBox(height: 5),
                                     ],
                                   ),
-                                  Text(
-                                    description,
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                  SizedBox(height: 5),
-                                ],
-                              ),
-                            );
-                          },
+                                );
+                              },
+                            ),
+                          ],
                         ),
+                        SizedBox(height: 70.0),
                       ],
                     ),
-                    SizedBox(height: 70.0),
-                  ],
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 8,
+                left: 16,
+                right: 16,
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2B2B2B),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        icon: Icons.home,
+                        label: 'Home',
+                        isSelected: _currentIndex == 4,
+                        index: 4,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.insert_drive_file,
+                        label: 'Permit',
+                        isSelected: _currentIndex == 0,
+                        index: 0,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.navigation,
+                        label: 'Navigation',
+                        isSelected: _currentIndex == 1,
+                        index: 1,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.bookmark,
+                        label: 'Saved',
+                        isSelected: _currentIndex == 2,
+                        index: 2,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.person,
+                        label: 'Profile',
+                        isSelected: _currentIndex == 3,
+                        index: 3,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          Positioned(
-            bottom: 8,
-            left: 24,
-            right: 24,
-            child: Container(
-              height: 70,
-              decoration: BoxDecoration(
-                color: Color(0xFFaad6ec),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.home,
-                    label: 'Home',
-                    isSelected: _currentIndex == 4,
-                    index: 4,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.insert_drive_file,
-                    label: 'Permit',
-                    isSelected: _currentIndex == 0,
-                    index: 0,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.navigation,
-                    label: 'Navigation',
-                    isSelected: _currentIndex == 1,
-                    index: 1,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.bookmark,
-                    label: 'Saved',
-                    isSelected: _currentIndex == 2,
-                    index: 2,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person,
-                    label: 'Profile',
-                    isSelected: _currentIndex == 3,
-                    index: 3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

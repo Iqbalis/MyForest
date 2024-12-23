@@ -1,17 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myforestnew/Pages/profile.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Setting extends StatefulWidget {
   @override
   _SettingState createState() => _SettingState();
 }
+
 class _SettingState extends State<Setting> {
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
+  bool notificationsEnabled = false;
+  bool locationEnabled = false;
+
+  @override
+  void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    emailController.dispose();
+    cityController.dispose();
+    ageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> savePersonalInfo() async {
+    try {
+
+      // Now get the current user
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw 'User is not logged in';
+      }
+
+      String userId = user.uid;
+
+      await FirebaseFirestore.instance.collection('profile').doc(userId).set({
+        'first_name': firstNameController.text,
+        'last_name': lastNameController.text,
+        'email': emailController.text,
+        'age': ageController.text,
+        'city': cityController.text,
+        'notifications_enabled': notificationsEnabled,
+        'location_enabled': locationEnabled,
+        'updated_at': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Personal information saved successfully!')),
+      );
+
+      // Clear the input fields
+      firstNameController.clear();
+      lastNameController.clear();
+      emailController.clear();
+      ageController.clear();
+      cityController.clear();
+
+      setState(() {
+        notificationsEnabled = false;
+        locationEnabled = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save information: $e')),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF1F1F1F),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -37,13 +104,13 @@ class _SettingState extends State<Setting> {
               ),
             ),
             SizedBox(height: 16),
-            _buildTextField('First Name'),
+            _buildTextField('First Name', firstNameController),
             SizedBox(height: 16),
-            _buildTextField('Last Name'),
+            _buildTextField('Last Name', lastNameController),
             SizedBox(height: 16),
-            _buildTextField('Email'),
+            _buildTextField('Email', emailController),
             SizedBox(height: 16),
-            _buildDropdownField('Age'),
+            _buildTextField('Age', ageController, keyboardType: TextInputType.number),
             SizedBox(height: 32),
             Text(
               'Location',
@@ -54,8 +121,9 @@ class _SettingState extends State<Setting> {
               ),
             ),
             SizedBox(height: 16),
-            _buildTextField('City'),
+            _buildTextField('City', cityController),
             SizedBox(height: 32),
+
             Text(
               'Privacy',
               style: TextStyle(
@@ -65,11 +133,18 @@ class _SettingState extends State<Setting> {
               ),
             ),
             SizedBox(height: 16),
-            _buildSwitch('Notifications'),
-            _buildSwitch('Turn On Location'),
+            _buildSwitch('Notifications', notificationsEnabled, (value) {
+              setState(() {
+                notificationsEnabled = value;
+              });
+            }),
+            _buildSwitch('Turn On Location', locationEnabled, (value) {
+              setState(() {
+                locationEnabled = value;
+              });
+            }),
             SizedBox(height: 32),
 
-            // Account Section
             Text(
               'Account',
               style: TextStyle(
@@ -82,7 +157,6 @@ class _SettingState extends State<Setting> {
             _buildPressableArrowSection('Account', 'Delete Account', context),
             SizedBox(height: 32),
 
-            // Legal Section
             Text(
               'Legal',
               style: TextStyle(
@@ -95,7 +169,6 @@ class _SettingState extends State<Setting> {
             _buildPressableArrowSection('Legal', 'Terms & Conditions', context),
             _buildPressableArrowSection('Legal', 'About MyForest', context),
 
-            // Save button aligned to the right
             SizedBox(height: 32),
             _buildSaveButtonAlignedRight(),
           ],
@@ -104,9 +177,12 @@ class _SettingState extends State<Setting> {
     );
   }
 
-  Widget _buildTextField(String labelText) {
+  Widget _buildTextField(String labelText, TextEditingController controller, {TextInputType keyboardType = TextInputType.text}) {
     return TextField(
+      controller: controller,
       style: TextStyle(color: Colors.white),
+      keyboardType: keyboardType,
+      cursorColor: Colors.white,
       decoration: InputDecoration(
         labelText: labelText,
         labelStyle: TextStyle(color: Colors.grey),
@@ -120,33 +196,7 @@ class _SettingState extends State<Setting> {
     );
   }
 
-  Widget _buildDropdownField(String labelText) {
-    return DropdownButtonFormField<String>(
-      dropdownColor: Colors.black,
-      style: TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: labelText,
-        labelStyle: TextStyle(color: Colors.grey),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
-        ),
-      ),
-      items: List.generate(100, (index) => (index + 1).toString())
-          .map((age) => DropdownMenuItem(
-        child: Text(age),
-        value: age,
-      ))
-          .toList(),
-      onChanged: (value) {
-        // Handle age selection
-      },
-    );
-  }
-
-  Widget _buildSwitch(String label) {
+  Widget _buildSwitch(String label, bool value, ValueChanged<bool> onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -157,10 +207,8 @@ class _SettingState extends State<Setting> {
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
           Switch(
-            value: false,
-            onChanged: (value) {
-              // Handle switch state change
-            },
+            value: value,
+            onChanged: onChanged,
             activeColor: Colors.blue,
           ),
         ],
@@ -193,12 +241,7 @@ class _SettingState extends State<Setting> {
     return Align(
       alignment: Alignment.centerRight,
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ProfilePage()),
-          );
-  },
+        onPressed: savePersonalInfo,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
@@ -214,4 +257,3 @@ class _SettingState extends State<Setting> {
     );
   }
 }
-

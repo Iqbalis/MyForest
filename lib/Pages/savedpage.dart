@@ -1,7 +1,12 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myforestnew/bukitAyam/bukitAyam.dart';
+import 'package:myforestnew/bukitBintang/bukitBintang.dart';
+import 'package:myforestnew/bukitLagong/bukitLagong.dart';
+import 'package:myforestnew/bukitPau/bukitPau.dart';
+import 'package:myforestnew/mountHItam/mountHitam.dart';
+import 'package:myforestnew/mountnuang/mountnuang.dart';
 
 class SavedPage extends StatefulWidget {
   @override
@@ -10,7 +15,6 @@ class SavedPage extends StatefulWidget {
 
 class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -24,24 +28,48 @@ class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
+  Widget? _getMountainPage(String mountainName) {
+    switch (mountainName) {
+      case 'Bukit Ayam':
+        return bukitAyam();
+      case 'Bukit Bintang':
+        return bukitBintang();
+      case 'Bukit Lagong':
+        return bukitLagong();
+      case 'Bukit Pau':
+        return bukitPau();
+      case 'Mount Hitam':
+        return mountHitam();
+      case 'Mount Nuang':
+        return MountNuangPage();
+      default:
+        return null; // Return null if no match is found
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        automaticallyImplyLeading: false,
+        backgroundColor: Color(0xFF1F1F1F),
         elevation: 0,
         title: Text(
           'Saved',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(fontSize: 25, color: Colors.white),
         ),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Colors.white,
           tabs: [
             Tab(icon: Icon(Icons.list), text: "List"),
             Tab(icon: Icon(Icons.download), text: "Download"),
           ],
         ),
+        toolbarHeight: 80,
       ),
       body: TabBarView(
         controller: _tabController,
@@ -97,31 +125,70 @@ class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMix
 
         return ListView.builder(
           padding: EdgeInsets.all(16.0),
-          itemCount: savedMountains.length + 1, // Add 1 for the SizedBox
+          itemCount: savedMountains.length + 1,
           itemBuilder: (context, index) {
             if (index == savedMountains.length) {
-              return SizedBox(height: 65); // Add space at the bottom
+              return SizedBox(height: 65);
             }
 
             final mountain = savedMountains[index].data() as Map<String, dynamic>;
-            return _buildMountainCard(mountain);
+            return GestureDetector(
+              onTap: () {
+                final String mountainName = mountain['name'];
+                final mountainPage = _getMountainPage(mountainName);
+
+                if (mountainPage != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => mountainPage),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Page for $mountainName not found.')),
+                  );
+                }
+              },
+              child: MountainCard(mountain: mountain),
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildMountainCard(Map<String, dynamic> mountain) {
-    final String name = mountain['name'] ?? 'Unknown Mountain';
-    final String distance = mountain['distance'] ?? 'N/A';
-    final String description = mountain['description'] ?? 'No description available';
-    final List<String> images = (mountain['images'] as List<dynamic>?)?.cast<String>() ?? [];
+  Widget _buildDownloadView() {
+    return Center(
+      child: Text(
+        "It seems like you haven't downloaded anything yet.",
+        style: TextStyle(color: Colors.white),
+      ),
+    );
+  }
+}
+
+class MountainCard extends StatefulWidget {
+  final Map<String, dynamic> mountain;
+
+  const MountainCard({Key? key, required this.mountain}) : super(key: key);
+
+  @override
+  _MountainCardState createState() => _MountainCardState();
+}
+
+class _MountainCardState extends State<MountainCard> {
+  int _currentImageIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final String name = widget.mountain['name'] ?? 'Unknown Mountain';
+    final String distance = widget.mountain['distance'] ?? 'N/A';
+    final String description = widget.mountain['description'] ?? 'No description available';
+    final List<String> images = (widget.mountain['images'] as List<dynamic>?)?.cast<String>() ?? [];
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
           Container(
             height: 250,
@@ -200,18 +267,6 @@ class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMix
           ),
           SizedBox(height: 5),
         ],
-      ),
-
-    );
-
-  }
-
-
-  Widget _buildDownloadView() {
-    return Center(
-      child: Text(
-        "Download Section",
-        style: TextStyle(color: Colors.white),
       ),
     );
   }

@@ -1,25 +1,31 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:myforestnew/Pages/HomPage.dart';
+import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
-import 'package:xml/xml.dart';
 import 'package:location/location.dart';
-import 'dart:async';
+import 'package:http/http.dart' as http;
+
 import '../Resources/elevation_profile.dart';
 
 class NuangTrail extends StatefulWidget {
-  const NuangTrail({Key? key}) : super(key: key);
-
   @override
-  _NuangTrailScreen createState() => _NuangTrailScreen();
+  _NuangTrailScreen createState() => new _NuangTrailScreen();
 }
 
 class _NuangTrailScreen extends State<NuangTrail> {
-  final MapController _mapController = MapController();
+  final Location _locationService = Location();
+  final Location _location = Location();
 
   bool _isLoading = true;
-  final Location _locationService = Location();
+  bool _isElevationProfileVisible = true;
   LatLng? _currentLocation;
+  LatLng? _destination;
+  List<LatLng> _route = [];
   List<LatLng> _gpxRoute = [];
   List<double> _elevations = [];
   bool _isTracking = false; // Tracking state
@@ -29,7 +35,8 @@ class _NuangTrailScreen extends State<NuangTrail> {
   double _totalDistance = 0.0; // Total distance
   LatLng? _lastLocation;
 
-  final Location _location = Location();
+  // Controller for the map
+  final MapController _mapController = MapController();
 
   @override
   void initState() {
@@ -68,6 +75,7 @@ class _NuangTrailScreen extends State<NuangTrail> {
     return true;
   }
 
+  /// Load GPX file and parse coordinates
   Future<void> _loadGPXRoute() async {
     try {
       final String gpxString =
@@ -88,20 +96,31 @@ class _NuangTrailScreen extends State<NuangTrail> {
         elevations.add(ele);
       }
 
+      // Calculate the center of the trail
+      LatLng center = _calculateRouteCenter(trailCoordinates);
+
       setState(() {
         _gpxRoute = trailCoordinates;
         _elevations = elevations;
+        _destination = center; // Set the trail center as the initial destination
       });
     } catch (e) {
       print('Error loading GPX file: $e');
     }
   }
 
+
   void _startTracking() {
     setState(() {
       _isTracking = true;
       _isPaused = false;
+      _isElevationProfileVisible = false;
     });
+
+    // Re-center the map to the user's current location when tracking starts
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 15.0); // Zoom level 15
+    }
 
     // Start timer
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -120,10 +139,12 @@ class _NuangTrailScreen extends State<NuangTrail> {
           final double distance = const Distance()
               .as(LengthUnit.Meter, _lastLocation!, currentLocation);
           setState(() {
-            _totalDistance += distance / 1000;;
+            _totalDistance += distance / 1000; // in km
           });
         }
         _lastLocation = currentLocation;
+        // Re-center map to user's location
+        _mapController.move(currentLocation, 15.0);
       }
     });
   }
@@ -133,7 +154,6 @@ class _NuangTrailScreen extends State<NuangTrail> {
       _isPaused = true;
       _isTracking = false;
     });
-    print("_isPaused: $_isPaused, _isTracking: $_isTracking");
     _timer?.cancel();
   }
 
@@ -142,7 +162,6 @@ class _NuangTrailScreen extends State<NuangTrail> {
       _isPaused = false;
       _isTracking = true;
     });
-    print("_isPaused: $_isPaused, _isTracking: $_isTracking");
     _startTracking(); // Restart tracking
   }
 
@@ -153,8 +172,14 @@ class _NuangTrailScreen extends State<NuangTrail> {
       _elapsedSeconds = 0;
       _totalDistance = 0.0;
       _lastLocation = null;
+      _isElevationProfileVisible = true;
     });
     _timer?.cancel();
+
+    // Reset map to the initial view (before tracking started)
+    if (_gpxRoute.isNotEmpty) {
+      _mapController.move(_calculateRouteCenter(_gpxRoute), 13.0); // Center map on the route
+    }
   }
 
   String _formatTime(int seconds) {
@@ -180,118 +205,160 @@ class _NuangTrailScreen extends State<NuangTrail> {
     return LatLng(centerLat, centerLon);
   }
 
+  /// Show error message
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuang Trail Map'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
+            );
+          },
+        ),
+        title: const Text(
+          "Mount Nuang",
+          style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
       ),
       body: Stack(
         children: [
           _gpxRoute.isEmpty
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(
+            child: CircularProgressIndicator(),
+          )
               : FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _calculateRouteCenter(_gpxRoute),
+              initialCenter: _calculateRouteCenter(_gpxRoute), // Default to trail center
               initialZoom: 13,
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
               ),
-              PolylineLayer(
-                polylines: [
+              CurrentLocationLayer(
+                //alignPositionOnUpdate: AlignOnUpdate.always,
+                //alignDirectionOnUpdate: AlignOnUpdate.never,
+                style: const LocationMarkerStyle(
+                  marker: DefaultLocationMarker(
+                    child: Icon(
+                      Icons.navigation,
+                      color: Colors.white,
+                    ),
+                  ),
+                  markerSize: Size(40, 40),
+                  markerDirection: MarkerDirection.heading,
+                ),
+              ),
+              if (_currentLocation != null && _gpxRoute.isNotEmpty)
+                PolylineLayer(polylines: [
                   Polyline(
                     points: _gpxRoute,
                     strokeWidth: 4.0,
                     color: Colors.blue,
+                  )
+                ]),
+            ],
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    height: _isElevationProfileVisible
+                        ? MediaQuery.of(context).size.height * 0.25
+                        : 0,
+                    curve: Curves.easeInOut,
+                    child: _isElevationProfileVisible
+                        ? _elevations.isNotEmpty
+                        ? ElevationProfile(elevations: _elevations)
+                        : const Center(child: CircularProgressIndicator())
+                        : const SizedBox(),
+                  ),
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        Text(
+                          "Time: ${_formatTime(_elapsedSeconds)}",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Distance: ${_totalDistance.toStringAsFixed(2)} km",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Start, Pause, Resume, Stop Buttons
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    width: double.infinity,
+                    child: _isPaused
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _resumeTracking,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text("Resume"),
+                        ),
+                        ElevatedButton(
+                          onPressed: _stopTracking,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text("Stop"),
+                        ),
+                      ],
+                    )
+                        : Center(
+                      child: ElevatedButton(
+                        onPressed: _isTracking ? _pauseTracking : _startTracking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isTracking ? Colors.red : Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(_isTracking ? "Pause" : "Start"),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-
-          // Bottom Container with Elevation Profile and Time/Distance
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Elevation Profile
-                Container(
-                  height: MediaQuery.of(context).size.height * 0.25,
-                  width: double.infinity,
-                  color: Colors.white.withOpacity(0.9),
-                  child: _elevations.isNotEmpty
-                      ? ElevationProfile(elevations: _elevations)
-                      : const Center(child: CircularProgressIndicator()),
-                ),
-
-                // Time and Distance with white background
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16), // Adjust padding for better fit
-                  width: double.infinity, // Ensure it takes up the full width
-                  child: Column(
-                    children: [
-                      Text(
-                        "Time: ${_formatTime(_elapsedSeconds)}",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4), // Space between time and distance
-                      Text(
-                        "Distance: ${_totalDistance.toStringAsFixed(2)} km",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Start, Pause, Resume, Stop Buttons
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  width: double.infinity,
-                  child: _isPaused
-                      ? Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _resumeTracking,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text("Resume"),
-                      ),
-                      ElevatedButton(
-                        onPressed: _stopTracking,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text("Stop"),
-                      ),
-                    ],
-                  )
-                      : Center(
-                    child: ElevatedButton(
-                      onPressed:
-                      _isTracking ? _pauseTracking : _startTracking,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                        _isTracking ? Colors.red : Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(_isTracking ? "Pause" : "Start"),
-                    ),
-                  ),
-                ),
-              ],
+          // Re-center button placed on top of the elevation profile
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.25 + 16, // Position above the elevation profile
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _recenterToUserLocation,
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.my_location, color: Colors.white),
             ),
           ),
         ],
@@ -299,10 +366,13 @@ class _NuangTrailScreen extends State<NuangTrail> {
     );
   }
 
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  /// Function to recenter map to user's current location
+  void _recenterToUserLocation() {
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 70.0); // Adjust the zoom level as needed
+    } else {
+      _showError("Current location not available");
+    }
   }
+
 }

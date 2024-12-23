@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myforestnew/Admin/detailApplication.dart';
 
 class PermitsListPage extends StatefulWidget {
@@ -7,18 +7,23 @@ class PermitsListPage extends StatefulWidget {
   _PermitsListPageState createState() => _PermitsListPageState();
 }
 
-class _PermitsListPageState extends State<PermitsListPage> {
+
+class _PermitsListPageState extends State<PermitsListPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> permits = [];
-  List<Map<String, dynamic>> filteredPermits = [];
+  List<Map<String, dynamic>> pendingPermits = [];
+  List<Map<String, dynamic>> approvedPermits = [];
+  List<Map<String, dynamic>> rejectedPermits = [];
+  late TabController tabController;
 
   @override
   void initState() {
     super.initState();
+    tabController = TabController(length: 3, vsync: this);
     fetchPermits();
   }
 
-  /// Fetch permits from Firestore
   Future<void> fetchPermits() async {
     try {
       final QuerySnapshot snapshot =
@@ -33,207 +38,199 @@ class _PermitsListPageState extends State<PermitsListPage> {
           'guide': data['guide'] ?? '',
           'mountain': data['mountain'] ?? '',
           'participants': data['participants'] ?? [],
+          'status': data['status'] ?? 'pending',
         };
       }).toList();
 
       setState(() {
         permits = fetchedPermits;
-        filteredPermits = fetchedPermits;
+        categorizePermits();
       });
     } catch (e) {
       print("Error fetching permits: $e");
     }
   }
 
-  /// Update permit status in Firestore
+  void categorizePermits() {
+    pendingPermits = permits.where((permit) => permit['status'] == 'pending').toList();
+    approvedPermits = permits.where((permit) => permit['status'] == 'approved').toList();
+    rejectedPermits = permits.where((permit) => permit['status'] == 'rejected').toList();
+  }
+
   Future<void> updatePermitStatus(String permitId, String status) async {
     try {
       await FirebaseFirestore.instance.collection('permits').doc(permitId).update({
         'status': status,
       });
 
-      // Refresh data after updating
       fetchPermits();
     } catch (e) {
       print("Error updating permit status: $e");
     }
   }
 
-  /// Filter permits based on search query
-  void filterSearch(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredPermits = permits;
-      } else {
-        filteredPermits = permits
-            .where((permit) =>
-        permit['participants']
-            .any((participant) => participant['name']
-            .toString()
-            .toLowerCase()
-            .contains(query.toLowerCase())) ||
-            permit['mountain']
-                .toString()
-                .toLowerCase()
-                .contains(query.toLowerCase()))
-            .toList();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Permits List',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.black,
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      body: Container(
-        color: Colors.black,
-        padding: EdgeInsets.all(16.0),
-        child: Column(
+  Widget buildPermitCard(Map<String, dynamic> permit) {
+    return Card(
+      color: Colors.white,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
           children: [
-            // Search bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.grey[400],
+              child: Icon(Icons.person, color: Colors.grey[800], size: 30),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: searchController,
-                      style: TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Search permit',
-                        hintStyle: TextStyle(color: Colors.grey[500]),
-                        border: InputBorder.none,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              detailApplication(documentId: permit['id']),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      permit['participants'].isNotEmpty
+                          ? permit['participants'][0]['name'] ?? "Unknown"
+                          : "No Participants",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
                       ),
-                      onChanged: filterSearch,
                     ),
                   ),
-                  Icon(Icons.search, color: Colors.white),
+                  SizedBox(height: 8),
+                  Text(
+                    "Location: ${permit['mountain']}",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Date: ${permit['date']}",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
                 ],
               ),
             ),
-            SizedBox(height: 16.0),
-            // Permits List
-            Expanded(
-              child: filteredPermits.isEmpty
-                  ? Center(
-                child: Text(
-                  "No application found",
-                  style: TextStyle(color: Colors.white),
-                ),
-              )
-                  : ListView.builder(
-                itemCount: filteredPermits.length,
-                itemBuilder: (context, index) {
-                  final permit = filteredPermits[index];
-                  return Container(
-                    margin: EdgeInsets.symmetric(vertical: 6.0),
-                    padding: EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(9.0),
+            if (permit['status'] == 'pending')
+              Row(
+                children: [
+                  // Rejection Circle
+                  GestureDetector(
+                    onTap: () {
+                      updatePermitStatus(permit['id'], "rejected");
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.close, color: Colors.red),
                     ),
-                    child: Row(
-                      children: [
-                        // Placeholder for the icon
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.green[200],
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.green[800],
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 12.0),
-                        // Permit details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => detailApplication(
-                                        documentId: permit['id'],
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  permit['participants'].isNotEmpty
-                                      ? permit['participants'][0]['name'] ?? "Unknown"
-                                      : "No Participants", // Fallback if no participants
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16.0,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                "Location: ${permit['mountain']}",
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 14.0,
-                                ),
-                              ),
-                              Text(
-                                "Date: ${permit['date']}",
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 14.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 8.0),
-                        // Accept and reject icons
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.close, color: Colors.red),
-                              onPressed: () {
-                                updatePermitStatus(permit['id'], "rejected");
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.check, color: Colors.green),
-                              onPressed: () {
-                                updatePermitStatus(permit['id'], "approved");
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
+                  ),
+                  SizedBox(width: 8),
+                  // Approval Circle
+                  GestureDetector(
+                    onTap: () {
+                      updatePermitStatus(permit['id'], "approved");
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.check, color: Colors.green),
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
-            ),
           ],
         ),
       ),
     );
   }
-}
 
+  Widget buildPermitList(List<Map<String, dynamic>> permits) {
+    if (permits.isEmpty) {
+      return Center(
+        child: Text(
+          "No applications found",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: permits.length,
+      itemBuilder: (context, index) {
+        return buildPermitCard(permits[index]);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          "Permit List",
+          style: TextStyle(
+            fontFamily: 'OpenSans', // Apply OpenSans font
+            color: Colors.white, // Title text color
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: Colors.black87,
+        iconTheme: IconThemeData(
+          color: Colors.white, // Set the back button color to white
+        ),
+        bottom: TabBar(
+          controller: tabController,
+          indicatorColor: Colors.white,
+          unselectedLabelColor: Colors.grey[500],
+          labelStyle: TextStyle(
+            fontFamily: 'OpenSans', // Apply OpenSans font to tab labels
+            color: Colors.white,
+            fontSize: 16,
+          ),
+          tabs: [
+            Tab(text: "Pending"),
+            Tab(text: "Approved"),
+            Tab(text: "Rejected"),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: tabController,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: buildPermitList(pendingPermits),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: buildPermitList(approvedPermits),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: buildPermitList(rejectedPermits),
+          ),
+        ],
+      ),
+    );
+  }
+}

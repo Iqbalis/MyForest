@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myforestnew/Admin/AdminLogin.dart';
 import 'package:myforestnew/Pages/ForgetPass.dart';
 import 'package:myforestnew/Pages/GetStarted.dart';
 import 'package:myforestnew/Pages/HomPage.dart';
@@ -6,8 +7,6 @@ import 'package:myforestnew/Pages/SignUp.dart';
 import 'package:myforestnew/Resources/auth_method.dart';
 import 'package:myforestnew/Resources/utils.dart';
 import 'package:myforestnew/Widgets/text_field_input.dart';
-
-import '../Admin/AdminLogin.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -26,17 +25,22 @@ class __LogininScreenState extends State<LoginPage> {
     _passwordController.dispose();
   }
 
+  // Modified loginUser method to include a 1-second delay before login attempt
   void loginUser() async {
     setState(() {
       _isLoading = true;
     });
+
+    // Simulate a delay of 1 second before starting the login process
+    await Future.delayed(Duration(seconds: 1));
+
     String res = await AuthMethods().loginUser(
       email: _emailController.text,
       password: _passwordController.text,
     );
 
     if (res == "success") {
-      Navigator.of(context).push(
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => HomePage(),
         ),
@@ -44,6 +48,7 @@ class __LogininScreenState extends State<LoginPage> {
     } else {
       showSnackBar(res, context);
     }
+
     setState(() {
       _isLoading = false;
     });
@@ -52,9 +57,9 @@ class __LogininScreenState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Background color
+      backgroundColor: Color(0xFF1F1F1F), // Background color
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF1F1F1F),
         iconTheme: IconThemeData(
           color: Colors.white,
         ),
@@ -72,7 +77,7 @@ class __LogininScreenState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Image.asset(
-                    'assets/myforestlogo.jpg',
+                    'assets/myforestlogo.png',
                     height: 120,
                   ),
                 ],
@@ -128,7 +133,7 @@ class __LogininScreenState extends State<LoginPage> {
                 // Tree icon or logo
                 Center(
                   child: Image.asset(
-                    'assets/myforestlogo.jpg',
+                    'assets/myforestlogo.png',
                     height: 150,
                   ),
                 ),
@@ -184,7 +189,11 @@ class __LogininScreenState extends State<LoginPage> {
                 ),
                 SizedBox(height: 10),
                 // Login button (arrow icon)
-                ElevatedButton(
+                _isLoading
+                    ? CircularProgressIndicator(
+                  color: Colors.white,
+                ) // Show loading indicator while logging in
+                    : ElevatedButton(
                   onPressed: loginUser,
                   style: ElevatedButton.styleFrom(
                     shape: CircleBorder(),

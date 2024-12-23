@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:myforestnew/mountHItam/hitamTrail.dart';
@@ -469,7 +468,7 @@ class _HitamPageState extends State<mountHitam> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('3,345 ft', style: TextStyle(fontSize: 24,
+              Text('3,345 m', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),
@@ -481,7 +480,7 @@ class _HitamPageState extends State<mountHitam> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('2 hour 30 min', style: TextStyle(fontSize: 24,
+              Text('5 hour 30 min', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),

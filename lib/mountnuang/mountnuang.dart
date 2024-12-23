@@ -475,7 +475,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('4,898 ft', style: TextStyle(fontSize: 24,
+              Text('1,493 m', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),
@@ -487,7 +487,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('3 hour 30 min', style: TextStyle(fontSize: 24,
+              Text('9 hour 30 min', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),

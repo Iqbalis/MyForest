@@ -5,8 +5,6 @@ import 'package:myforestnew/Resources/auth_method.dart';
 import 'package:myforestnew/Resources/utils.dart';
 import 'package:myforestnew/Widgets/text_field_input.dart';
 
-import 'homeadmin.dart';
-
 class AdminLoginPage extends StatefulWidget {
 
   @override
@@ -25,49 +23,26 @@ class __LogininScreenState extends State<AdminLoginPage> {
     _passwordController.dispose();
   }
 
-  void loginUser() async {
+  void loginUser() async{
     setState(() {
       _isLoading = true;
     });
-
-    try {
-      // Attempt to log in the user
-      String res = await AuthMethods().loginUser(
+    String res = await AuthMethods().loginUser(
         email: _emailController.text,
-        password: _passwordController.text,
+        password: _passwordController.text
+    );
+
+    if(res == "success") {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => HomePage(),
+        ),
       );
+    } else {
+      //
+      showSnackBar(res, context);
 
-      if (res == "success") {
-        // Fetch user data
-        Map<String, dynamic>? userData = await AuthMethods().getUserData();
-
-        if (userData != null) {
-          // Check the user's role
-          if (userData['role'] == 'admin') {
-            // Navigate to Admin Home Page
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => HomeAdmin(),
-              ),
-            );
-          } else {
-            // Navigate to User Home Page
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => HomePage(),
-              ),
-            );
-          }
-        } else {
-          showSnackBar("Failed to fetch user data.", context);
-        }
-      } else {
-        showSnackBar(res, context);
-      }
-    } catch (e) {
-      showSnackBar("An error occurred: $e", context);
     }
-
     setState(() {
       _isLoading = false;
     });
@@ -76,7 +51,7 @@ class __LogininScreenState extends State<AdminLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Background color to match the design
+      backgroundColor: Color(0xFF1F1F1F), // Background color to match the design
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
@@ -85,7 +60,7 @@ class __LogininScreenState extends State<AdminLoginPage> {
             // Tree icon or logo (placeholder for now)
             Center(
               child: Image.asset(
-                'assets/myforestlogo.jpg',
+                'assets/myforestlogo.png',
                 height: 150,
               ),
             ),

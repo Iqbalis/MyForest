@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
+
+import '../Resources/elevation_profile.dart';
 
 class HitamTrail extends StatefulWidget {
   @override
@@ -15,12 +19,21 @@ class HitamTrail extends StatefulWidget {
 
 class _HitamTrailScreen extends State<HitamTrail> {
   final Location _locationService = Location();
+  final Location _location = Location();
 
   bool _isLoading = true;
+  bool _isElevationProfileVisible = true;
   LatLng? _currentLocation;
   LatLng? _destination;
   List<LatLng> _route = [];
   List<LatLng> _gpxRoute = [];
+  List<double> _elevations = [];
+  bool _isTracking = false; // Tracking state
+  bool _isPaused = false; // Pause state
+  Timer? _timer;
+  int _elapsedSeconds = 0; // Elapsed time
+  double _totalDistance = 0.0; // Total distance
+  LatLng? _lastLocation;
 
   // Controller for the map
   final MapController _mapController = MapController();
@@ -64,59 +77,132 @@ class _HitamTrailScreen extends State<HitamTrail> {
 
   /// Load GPX file and parse coordinates
   Future<void> _loadGPXRoute() async {
-    // Load the GPX file from assets
-    final String gpxString = await rootBundle.loadString('assets/gpxFile/hitam.xml');
-    final document = XmlDocument.parse(gpxString);
+    try {
+      final String gpxString =
+      await rootBundle.loadString('assets/gpxFile/hitam.xml');
+      final document = XmlDocument.parse(gpxString);
 
-    // Extract coordinates (latitude and longitude) from the GPX file
-    final List<LatLng> trailCoordinates = [];
-    final waypoints = document.findAllElements('trkpt'); // Assuming GPX format uses 'trkpt' for waypoints
+      final List<LatLng> trailCoordinates = [];
+      final List<double> elevations = [];
 
-    for (var waypoint in waypoints) {
-      final lat = double.parse(waypoint.getAttribute('lat')!);
-      final lon = double.parse(waypoint.getAttribute('lon')!);
-      trailCoordinates.add(LatLng(lat, lon));
+      final waypoints = document.findAllElements('trkpt');
+      for (var waypoint in waypoints) {
+        final lat = double.parse(waypoint.getAttribute('lat')!);
+        final lon = double.parse(waypoint.getAttribute('lon')!);
+        final ele =
+            double.tryParse(waypoint.findElements('ele').first.text) ?? 0.0;
+
+        trailCoordinates.add(LatLng(lat, lon));
+        elevations.add(ele);
+      }
+
+      // Calculate the center of the trail
+      LatLng center = _calculateRouteCenter(trailCoordinates);
+
+      setState(() {
+        _gpxRoute = trailCoordinates;
+        _elevations = elevations;
+        _destination = center; // Set the trail center as the initial destination
+      });
+    } catch (e) {
+      print('Error loading GPX file: $e');
+    }
+  }
+
+
+  void _startTracking() {
+    setState(() {
+      _isTracking = true;
+      _isPaused = false;
+      _isElevationProfileVisible = false;
+    });
+
+    // Re-center the map to the user's current location when tracking starts
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 15.0); // Zoom level 15
     }
 
-    setState(() {
-      _gpxRoute = trailCoordinates; // Store the parsed route
+    // Start timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedSeconds++;
+      });
+    });
+
+    // Start location tracking
+    _location.onLocationChanged.listen((LocationData locationData) {
+      if (locationData.latitude != null && locationData.longitude != null) {
+        LatLng currentLocation =
+        LatLng(locationData.latitude!, locationData.longitude!);
+
+        if (_lastLocation != null) {
+          final double distance = const Distance()
+              .as(LengthUnit.Meter, _lastLocation!, currentLocation);
+          setState(() {
+            _totalDistance += distance / 1000; // in km
+          });
+        }
+        _lastLocation = currentLocation;
+        // Re-center map to user's location
+        _mapController.move(currentLocation, 15.0);
+      }
     });
   }
 
-  /// Decode polyline from OSRM response
-  List<List<double>> _decodePolyline(String polyline) {
-    const factor = 1e5;
-    List<List<double>> points = [];
-    int index = 0;
-    int len = polyline.length;
-    int lat = 0;
-    int lon = 0;
+  void _pauseTracking() {
+    setState(() {
+      _isPaused = true;
+      _isTracking = false;
+    });
+    _timer?.cancel();
+  }
 
-    while (index < len) {
-      int shift = 0;
-      int result = 0;
-      int byte;
-      do {
-        byte = polyline.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      int dlat = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-      shift = 0;
-      result = 0;
+  void _resumeTracking() {
+    setState(() {
+      _isPaused = false;
+      _isTracking = true;
+    });
+    _startTracking(); // Restart tracking
+  }
 
-      do {
-        byte = polyline.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
+  void _stopTracking() {
+    setState(() {
+      _isTracking = false;
+      _isPaused = false;
+      _elapsedSeconds = 0;
+      _totalDistance = 0.0;
+      _lastLocation = null;
+      _isElevationProfileVisible = true;
+    });
+    _timer?.cancel();
 
-      int dlng = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
-      lon += dlng;
-      points.add([lat / factor, lon / factor]);
+    // Reset map to the initial view (before tracking started)
+    if (_gpxRoute.isNotEmpty) {
+      _mapController.move(_calculateRouteCenter(_gpxRoute), 13.0); // Center map on the route
     }
-    return points;
+  }
+
+  String _formatTime(int seconds) {
+    final int hours = seconds ~/ 3600;
+    final int minutes = (seconds % 3600) ~/ 60;
+    final int secs = seconds % 60;
+    return "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  }
+
+  LatLng _calculateRouteCenter(List<LatLng> route) {
+    double latSum = 0;
+    double lonSum = 0;
+
+    for (var point in route) {
+      latSum += point.latitude;
+      lonSum += point.longitude;
+    }
+
+    double centerLat = latSum / route.length;
+    double centerLon = lonSum / route.length;
+
+    centerLat -= 0.018; // Adjust center upwards slightly
+    return LatLng(centerLat, centerLon);
   }
 
   /// Show error message
@@ -127,27 +213,15 @@ class _HitamTrailScreen extends State<HitamTrail> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the center and zoom based on the GPX route
-    LatLng? mapCenter;
-    double zoomLevel = 15; // Set zoom level closer to the trail
-
-    if (_gpxRoute.isNotEmpty) {
-      // Calculate the center of the route (average of all latitudes and longitudes)
-      double latSum = 0;
-      double lonSum = 0;
-      for (var point in _gpxRoute) {
-        latSum += point.latitude;
-        lonSum += point.longitude;
-      }
-      mapCenter = LatLng(latSum / _gpxRoute.length, lonSum / _gpxRoute.length);
-    }
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pop(); // Navigates back when pressed
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
+            );
           },
         ),
         title: const Text(
@@ -156,68 +230,149 @@ class _HitamTrailScreen extends State<HitamTrail> {
         ),
         backgroundColor: Colors.black,
       ),
-      body: Expanded(
-        child: _isLoading
-            ? const Center(
-          child: CircularProgressIndicator(),
-        )
-            : FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: mapCenter ?? _currentLocation ?? const LatLng(0, 0),
-            initialZoom: 14, // Adjust the zoom level here
-            minZoom: 10,
-            maxZoom: 18,
-            onPositionChanged: (position, hasGesture) {
-              if (hasGesture) {
-                // If the user interacts with the map, don't reset the map to the user's location
-              }
-            },
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      body: Stack(
+        children: [
+          _gpxRoute.isEmpty
+              ? const Center(
+            child: CircularProgressIndicator(),
+          )
+              : FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _calculateRouteCenter(_gpxRoute), // Default to trail center
+              initialZoom: 13,
             ),
-            // Remove the CurrentLocationLayer to stop showing the user's current location
-            // Destination marker
-            if (_destination != null)
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _destination!,
-                    width: 50,
-                    height: 50,
-                    child: const Icon(
-                      Icons.location_pin,
-                      color: Colors.red,
-                      size: 40,
+            children: [
+              TileLayer(
+                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+              ),
+              CurrentLocationLayer(
+                //alignPositionOnUpdate: AlignOnUpdate.always,
+                //alignDirectionOnUpdate: AlignOnUpdate.never,
+                style: const LocationMarkerStyle(
+                  marker: DefaultLocationMarker(
+                    child: Icon(
+                      Icons.navigation,
+                      color: Colors.white,
                     ),
+                  ),
+                  markerSize: Size(40, 40),
+                  markerDirection: MarkerDirection.heading,
+                ),
+              ),
+              if (_currentLocation != null && _gpxRoute.isNotEmpty)
+                PolylineLayer(polylines: [
+                  Polyline(
+                    points: _gpxRoute,
+                    strokeWidth: 4.0,
+                    color: Colors.blue,
                   )
+                ]),
+            ],
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    height: _isElevationProfileVisible
+                        ? MediaQuery.of(context).size.height * 0.25
+                        : 0,
+                    curve: Curves.easeInOut,
+                    child: _isElevationProfileVisible
+                        ? _elevations.isNotEmpty
+                        ? ElevationProfile(elevations: _elevations)
+                        : const Center(child: CircularProgressIndicator())
+                        : const SizedBox(),
+                  ),
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        Text(
+                          "Time: ${_formatTime(_elapsedSeconds)}",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Distance: ${_totalDistance.toStringAsFixed(2)} km",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Start, Pause, Resume, Stop Buttons
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    width: double.infinity,
+                    child: _isPaused
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _resumeTracking,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text("Resume"),
+                        ),
+                        ElevatedButton(
+                          onPressed: _stopTracking,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text("Stop"),
+                        ),
+                      ],
+                    )
+                        : Center(
+                      child: ElevatedButton(
+                        onPressed: _isTracking ? _pauseTracking : _startTracking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isTracking ? Colors.red : Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(_isTracking ? "Pause" : "Start"),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            // Route polyline (red color)
-            if (_currentLocation != null &&
-                _destination != null &&
-                _route.isNotEmpty)
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _route,
-                  strokeWidth: 4.0,
-                  color: Colors.red,
-                )
-              ]),
-            // GPX route polyline (blue color)
-            if (_gpxRoute.isNotEmpty)
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _gpxRoute,
-                  strokeWidth: 4.0,
-                  color: Colors.blue,
-                )
-              ]),
-          ],
-        ),
+            ),
+          ),
+          // Re-center button placed on top of the elevation profile
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.25 + 16, // Position above the elevation profile
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _recenterToUserLocation,
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.my_location, color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  /// Function to recenter map to user's current location
+  void _recenterToUserLocation() {
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 70.0); // Adjust the zoom level as needed
+    } else {
+      _showError("Current location not available");
+    }
+  }
+
 }

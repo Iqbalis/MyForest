@@ -46,7 +46,7 @@ class _SignupScreen extends State<SignUp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
@@ -54,7 +54,7 @@ class _SignupScreen extends State<SignUp> {
           children: [
             Center(
               child: Image.asset(
-                'assets/myforestlogo.jpg',
+                'assets/myforestlogo.png',
                 height: 150,
               ),
             ),
@@ -98,7 +98,7 @@ class _SignupScreen extends State<SignUp> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                 backgroundColor: Colors.white,
               ),
               child: _isLoading
@@ -112,7 +112,7 @@ class _SignupScreen extends State<SignUp> {
               )
                   : const Text(
                 "Sign Up",
-                style: TextStyle(color: Colors.black),
+                style: TextStyle(fontSize: 12, color: Colors.black),
               ),
             ),
             SizedBox(height: 40),
@@ -144,4 +144,3 @@ class _SignupScreen extends State<SignUp> {
     );
   }
 }
-

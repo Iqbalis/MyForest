@@ -9,7 +9,7 @@ class ForgetPass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
@@ -18,7 +18,7 @@ class ForgetPass extends StatelessWidget {
             // Tree icon or logo (placeholder for now)
             Center(
               child: Image.asset(
-                'assets/myforestlogo.jpg',
+                'assets/myforestlogo.png',
                 height: 150,
               ),
             ),
