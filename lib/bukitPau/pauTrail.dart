@@ -352,7 +352,7 @@ class _PauTrailScreen extends State<PauTrail> {
             ),
           ),
           // Re-center button placed on top of the elevation profile
-          Positioned(
+          /*Positioned(
             bottom: MediaQuery.of(context).size.height * 0.25 + 16, // Position above the elevation profile
             right: 16,
             child: FloatingActionButton(
@@ -360,13 +360,12 @@ class _PauTrailScreen extends State<PauTrail> {
               backgroundColor: Colors.blue,
               child: const Icon(Icons.my_location, color: Colors.white),
             ),
-          ),
+          ),*/
         ],
       ),
     );
   }
-
-  /// Function to recenter map to user's current location
+/*  /// Function to recenter map to user's current location
   void _recenterToUserLocation() {
     if (_currentLocation != null) {
       _mapController.move(_currentLocation!, 70.0); // Adjust the zoom level as needed
@@ -374,5 +373,5 @@ class _PauTrailScreen extends State<PauTrail> {
       _showError("Current location not available");
     }
   }
-
+*/
 }
