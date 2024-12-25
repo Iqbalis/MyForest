@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:myforestnew/Admin/permitAdmin.dart';
 import 'package:myforestnew/Pages/HomPage.dart';
+import 'package:myforestnew/Pages/navigation.dart';
 import 'package:myforestnew/permit/Permit.dart';
 import 'package:myforestnew/Pages/savedpage.dart';
 import 'package:myforestnew/Pages/setting.dart';
@@ -106,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               HomePage(),
               Permit(),
-              PermitAdmin(),
+              Navigation(),
               SavedPage(),
               SingleChildScrollView(
                 child: Column(
@@ -253,7 +254,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   _buildNavItem(
                     icon: Icons.navigation,
-                    label: 'Admin',
+                    label: 'Navigation',
                     isSelected: _currentIndex == 2,
                     index: 2,
                   ),
