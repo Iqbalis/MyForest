@@ -23,6 +23,8 @@ class _PauTrailScreen extends State<PauTrail> {
 
   bool _isLoading = true;
   bool _isElevationProfileVisible = true;
+  bool _isTrackingStarted = false;
+  bool _isRecenterVisible = true;
   LatLng? _currentLocation;
   LatLng? _destination;
   List<LatLng> _route = [];
@@ -115,12 +117,8 @@ class _PauTrailScreen extends State<PauTrail> {
       _isTracking = true;
       _isPaused = false;
       _isElevationProfileVisible = false;
+      _isTrackingStarted = true;
     });
-
-    // Re-center the map to the user's current location when tracking starts
-    if (_currentLocation != null) {
-      _mapController.move(_currentLocation!, 15.0); // Zoom level 15
-    }
 
     // Start timer
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -132,19 +130,24 @@ class _PauTrailScreen extends State<PauTrail> {
     // Start location tracking
     _location.onLocationChanged.listen((LocationData locationData) {
       if (locationData.latitude != null && locationData.longitude != null) {
-        LatLng currentLocation =
-        LatLng(locationData.latitude!, locationData.longitude!);
+        LatLng currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
 
         if (_lastLocation != null) {
-          final double distance = const Distance()
-              .as(LengthUnit.Meter, _lastLocation!, currentLocation);
+          final double distance = const Distance().as(LengthUnit.Meter, _lastLocation!, currentLocation);
+
           setState(() {
             _totalDistance += distance / 1000; // in km
           });
+
+          // Only re-center the map if the user has moved significantly (e.g., 10 meters or more)
+          if (distance > 10) {
+            _lastLocation = currentLocation;
+            _mapController.move(currentLocation, 19.0);  // Adjust zoom level as needed
+          }
+        } else {
+          _lastLocation = currentLocation;
+          _mapController.move(currentLocation, 19.0);  // Initial center
         }
-        _lastLocation = currentLocation;
-        // Re-center map to user's location
-        _mapController.move(currentLocation, 15.0);
       }
     });
   }
@@ -173,6 +176,7 @@ class _PauTrailScreen extends State<PauTrail> {
       _totalDistance = 0.0;
       _lastLocation = null;
       _isElevationProfileVisible = true;
+      _isRecenterVisible = false;
     });
     _timer?.cancel();
 
@@ -351,27 +355,29 @@ class _PauTrailScreen extends State<PauTrail> {
               ),
             ),
           ),
-          // Re-center button placed on top of the elevation profile
-          /*Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.25 + 16, // Position above the elevation profile
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _recenterToUserLocation,
-              backgroundColor: Colors.blue,
-              child: const Icon(Icons.my_location, color: Colors.white),
+          // Re-center button appears only after tracking starts
+          if (_isTrackingStarted && _isRecenterVisible)
+            Positioned(
+              bottom: 170, // Set to 16 for some padding from the top of the screen
+              right: 19,
+              child: FloatingActionButton(
+                onPressed: _recenterToUserLocation,
+                backgroundColor: Colors.blue,
+                child: const Icon(Icons.my_location, color: Colors.white),
+                shape: CircleBorder(),
+              ),
             ),
-          ),*/
         ],
       ),
     );
   }
-/*  /// Function to recenter map to user's current location
+
+  /// Function to recenter map to user's current location
   void _recenterToUserLocation() {
     if (_currentLocation != null) {
-      _mapController.move(_currentLocation!, 70.0); // Adjust the zoom level as needed
+      _mapController.move(_currentLocation!, 19.0); // Adjust the zoom level as needed
     } else {
       _showError("Current location not available");
     }
   }
-*/
 }

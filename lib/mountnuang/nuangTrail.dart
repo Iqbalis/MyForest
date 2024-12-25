@@ -380,5 +380,4 @@ class _NuangTrailScreen extends State<NuangTrail> {
       _showError("Current location not available");
     }
   }
-
 }
