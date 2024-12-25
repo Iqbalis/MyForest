@@ -17,7 +17,6 @@ class Navigation extends StatefulWidget {
 
 class _NavigationScreen extends State<Navigation> {
   final Location _locationService = Location();
-
   bool _isLoading = true;
   LatLng? _currentLocation;
   LatLng? _destination;
@@ -26,6 +25,9 @@ class _NavigationScreen extends State<Navigation> {
 
   // Controller for the map
   final MapController _mapController = MapController();
+
+  // Flag to track if the user has interacted with the map
+  bool _hasUserInteracted = false;
 
   @override
   void initState() {
@@ -45,6 +47,11 @@ class _NavigationScreen extends State<Navigation> {
               LatLng(locationData.latitude!, locationData.longitude!);
           _isLoading = false;
         });
+
+        // Only recenter if the user hasn't interacted with the map
+        if (!_hasUserInteracted && _currentLocation != null) {
+          _mapController.move(_currentLocation!, 15.0); // Recenter to user's current location
+        }
       }
     });
   }
@@ -66,11 +73,9 @@ class _NavigationScreen extends State<Navigation> {
 
   /// Load GPX file and parse coordinates
   Future<void> _loadGPXRoute() async {
-    // Load the GPX file from assets
     final String gpxString = await rootBundle.loadString('assets/gpxFile/iiumTrail.xml');
     final document = XmlDocument.parse(gpxString);
 
-    // Extract coordinates (latitude and longitude) from the GPX file
     final List<LatLng> trailCoordinates = [];
     final waypoints = document.findAllElements('trkpt'); // Assuming GPX format uses 'trkpt' for waypoints
 
@@ -85,46 +90,11 @@ class _NavigationScreen extends State<Navigation> {
     });
   }
 
-  /// Decode polyline from OSRM response
-  List<List<double>> _decodePolyline(String polyline) {
-    const factor = 1e5;
-    List<List<double>> points = [];
-    int index = 0;
-    int len = polyline.length;
-    int lat = 0;
-    int lon = 0;
-
-    while (index < len) {
-      int shift = 0;
-      int result = 0;
-      int byte;
-      do {
-        byte = polyline.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      int dlat = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-      shift = 0;
-      result = 0;
-
-      do {
-        byte = polyline.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-
-      int dlng = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
-      lon += dlng;
-      points.add([lat / factor, lon / factor]);
+  /// Recenter map to user's location
+  void _recenterToUserLocation() {
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 15.0); // Recenter to user's current location
     }
-    return points;
-  }
-
-  /// Show error message
-  void _showError(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -140,7 +110,6 @@ class _NavigationScreen extends State<Navigation> {
             );
           },
         ),
-
         title: const Text(
           "Map with Directions",
           style: TextStyle(fontSize: 20, color: Colors.white),
@@ -157,24 +126,23 @@ class _NavigationScreen extends State<Navigation> {
                 : FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: _destination ?? _currentLocation ?? const LatLng(0, 0),
+                initialCenter: _currentLocation ?? const LatLng(0, 0),
                 initialZoom: 15,
                 minZoom: 0,
                 maxZoom: 100,
-                // Disable following the current location continuously
                 onPositionChanged: (position, hasGesture) {
-                  if (hasGesture) {
-                    // If the user interacts with the map, don't reset the map to the user's location
-                  }
+                  // Track if the user interacted with the map
+                  _hasUserInteracted = hasGesture;
                 },
               ),
               children: [
                 TileLayer(
                   urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 ),
+                // Disable auto-recentering
                 CurrentLocationLayer(
-                  alignPositionOnUpdate: AlignOnUpdate.always,
-                  alignDirectionOnUpdate: AlignOnUpdate.never,
+                  alignPositionOnUpdate: AlignOnUpdate.never, // Prevent auto-recentering
+                  alignDirectionOnUpdate: AlignOnUpdate.never, // Prevent auto-direction updates
                   style: const LocationMarkerStyle(
                     marker: DefaultLocationMarker(
                       child: Icon(
@@ -186,6 +154,7 @@ class _NavigationScreen extends State<Navigation> {
                     markerDirection: MarkerDirection.heading,
                   ),
                 ),
+                // Display destination marker if available
                 if (_destination != null)
                   MarkerLayer(
                     markers: [
@@ -201,6 +170,7 @@ class _NavigationScreen extends State<Navigation> {
                       )
                     ],
                   ),
+                // Display route if available
                 if (_currentLocation != null &&
                     _destination != null &&
                     _route.isNotEmpty)
@@ -211,6 +181,7 @@ class _NavigationScreen extends State<Navigation> {
                       color: Colors.red,
                     )
                   ]),
+                // Display GPX route if available
                 if (_gpxRoute.isNotEmpty)
                   PolylineLayer(polylines: [
                     Polyline(
@@ -222,13 +193,23 @@ class _NavigationScreen extends State<Navigation> {
               ],
             ),
           ),
-          // Add the button
+          // Recenter button (top-right)
+          Positioned(
+            bottom: 180, // Set to 16 for some padding from the top of the screen
+            right: 19,
+            child: FloatingActionButton(
+              onPressed: _recenterToUserLocation,
+              backgroundColor: Colors.blue,
+              child: const Icon(Icons.my_location, color: Colors.white),
+              shape: CircleBorder(),
+            ),
+          ),
+          // Add trail button (bottom-right)
           Positioned(
             bottom: 90,
             right: 20,
             child: ElevatedButton(
               onPressed: () async {
-                // Navigate to SavedTrailsPage and wait for the result
                 final selectedTrail = await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -236,24 +217,23 @@ class _NavigationScreen extends State<Navigation> {
                   ),
                 );
 
-                // Check if a trail was selected
                 if (selectedTrail != null && selectedTrail is List<LatLng>) {
                   setState(() {
-                    _gpxRoute = selectedTrail; // Update the GPX route with the selected trail
+                    _gpxRoute = selectedTrail;
                   });
                 }
               },
               style: ElevatedButton.styleFrom(
                 shape: CircleBorder(),
-                padding: EdgeInsets.all(20), // Adjust size
-                backgroundColor: Colors.black, // Background color
-                shadowColor: Colors.black.withOpacity(0.2), // Shadow effect
-                elevation: 6, // Shadow elevation
+                padding: EdgeInsets.all(20),
+                backgroundColor: Colors.black,
+                shadowColor: Colors.black.withOpacity(0.2),
+                elevation: 6,
               ),
               child: Icon(
-                Icons.add, // Plus icon
-                size: 30, // Adjust size
-                color: Colors.white, // Icon color
+                Icons.add,
+                size: 30,
+                color: Colors.white,
               ),
             ),
           ),
@@ -262,3 +242,6 @@ class _NavigationScreen extends State<Navigation> {
     );
   }
 }
+
+
+
