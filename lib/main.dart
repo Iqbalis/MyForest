@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Getstarted(), // Replace with your initial screen
+      home: HomePage(), // Replace with your initial screen
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         textTheme: GoogleFonts.karlaTextTheme(
