@@ -36,6 +36,7 @@ class _NuangTrailScreen extends State<NuangTrail> {
   int _elapsedSeconds = 0; // Elapsed time
   double _totalDistance = 0.0; // Total distance
   LatLng? _lastLocation;
+  StreamSubscription<LocationData>? _locationSubscription;
 
   // Controller for the map
   final MapController _mapController = MapController();
@@ -127,8 +128,10 @@ class _NuangTrailScreen extends State<NuangTrail> {
       });
     });
 
-    // Start location tracking
+    // Start location tracking only if not paused
     _location.onLocationChanged.listen((LocationData locationData) {
+      if (_isPaused) return; // Skip location updates if paused
+
       if (locationData.latitude != null && locationData.longitude != null) {
         LatLng currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
 
@@ -152,12 +155,16 @@ class _NuangTrailScreen extends State<NuangTrail> {
     });
   }
 
+
   void _pauseTracking() {
     setState(() {
       _isPaused = true;
       _isTracking = false;
     });
     _timer?.cancel();
+
+    // Cancel the location tracking subscription
+    _locationSubscription?.cancel();
   }
 
   void _resumeTracking() {
