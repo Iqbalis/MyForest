@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Nuangloc extends StatelessWidget {
-  final double latitude = 3.3943;
-  final double longitude = 101.8146;
+  final double latitude = 3.2673305;
+  final double longitude = 101.889743;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +54,3 @@ class Nuangloc extends StatelessWidget {
     }
   }
 }
-
-
-

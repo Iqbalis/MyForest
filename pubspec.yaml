@@ -29,12 +29,12 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
+
     sdk: flutter
   intl: ^0.19.0
   http: ^1.2.1
   url_launcher: ^6.3.1
   google_maps_flutter: ^2.2.0
-  geolocator: ^13.0.2
   flutter_map: ^7.0.2
   location: ^7.0.1
   latlong2: ^0.9.1
@@ -43,6 +43,9 @@ dependencies:
   xml: ^6.5.0
   fl_chart: ^0.69.2
   google_fonts: ^5.0.0
+  pdf: ^3.11.1
+  path_provider: ^2.0.11
+  printing: ^5.13.4
 
 
 
@@ -51,11 +54,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   carousel_slider: ^5.0.0
   cloud_firestore: ^5.4.4
-  cloud_functions: ^5.1.5
   firebase_auth: ^5.3.1
   firebase_core: ^3.6.0
   firebase_storage: ^12.3.4
   vibration: ^1.8.1
+
 
 
 dev_dependencies:
@@ -83,43 +86,39 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-      - assets/mount.jpg
-      - assets/getstartedbg.jpg
-      - assets/myforestlogo.jpg
-      - assets/nuang/nuang1.png
-      - assets/nuang/nuang2.jpeg
-      - assets/nuang/nuang3.jpg
-      - assets/hitam/hitam1.jpg
-      - assets/hitam/hitam2.jpg
-      - assets/hitam/hitam3.jpg
-      - assets/icon/home.jpg
-      - assets/icon/navi.png
-      - assets/icon/permit.png
-      - assets/icon/save.png
-      - assets/icon/profile.png
-      - assets/lagong/lagong1.jpg
-      - assets/lagong/lagong2.jpg
-      - assets/lagong/lagong3.jpg
-      - assets/pau/pau1.jpg
-      - assets/pau/pau2.jpg
-      - assets/pau/pau3.jpg
-      - assets/ayam/ayam1.jpg
-      - assets/ayam/ayam2.jpg
-      - assets/ayam/ayam3.jpg
-      - assets/bintang/bintang1.jpg
-      - assets/bintang/bintang2.jpg
-      - assets/bintang/bintang3.png
-      - assets/my.png
-      - assets/profile.jpg
-      - assets/gpxFile/pau.xml
-      - assets/gpxFile/nuang.xml
-      - assets/gpxFile/hitam.xml
-      - assets/gpxFile/ayam.xml
-      - assets/gpxFile/lagong.xml
-      - assets/gpxFile/sriBintang.xml
-      - assets/gpxFile/lagong2.xml
-      - assets/fpx.png
-      - assets/myforestlogo.png
-
-      
-
+    - assets/mount.jpg
+    - assets/getstartedbg.jpg
+    - assets/nuang/nuang1.png
+    - assets/nuang/nuang2.jpeg
+    - assets/nuang/nuang3.jpg
+    - assets/hitam/hitam1.jpg
+    - assets/hitam/hitam2.jpg
+    - assets/hitam/hitam3.jpg
+    - assets/icon/home.jpg
+    - assets/icon/navi.png
+    - assets/icon/permit.png
+    - assets/icon/save.png
+    - assets/icon/profile.png
+    - assets/lagong/lagong1.jpg
+    - assets/lagong/lagong2.jpg
+    - assets/lagong/lagong3.jpg
+    - assets/pau/pau1.jpg
+    - assets/pau/pau2.jpg
+    - assets/pau/pau3.jpg
+    - assets/ayam/ayam1.jpg
+    - assets/ayam/ayam2.jpg
+    - assets/ayam/ayam3.jpg
+    - assets/bintang/bintang1.jpg
+    - assets/bintang/bintang2.jpg
+    - assets/bintang/bintang3.png
+    - assets/my.png
+    - assets/profile.jpg
+    - assets/fpx.png
+    - assets/gpxFile/pau.xml
+    - assets/gpxFile/nuang.xml
+    - assets/gpxFile/hitam.xml
+    - assets/gpxFile/ayam.xml
+    - assets/gpxFile/lagong.xml
+    - assets/gpxFile/sriBintang.xml
+    - assets/gpxFile/lagong2.xml
+    - assets/myforestlogo.png

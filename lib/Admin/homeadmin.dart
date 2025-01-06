@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myforestnew/Admin/permitAdmin.dart';
-import 'package:myforestnew/permit/Permit.dart';
+import 'package:myforestnew/Admin/profileadmin.dart';
 import 'package:myforestnew/Pages/profile.dart';
-import 'package:myforestnew/Pages/savedpage.dart';
 import 'package:myforestnew/bukitAyam/bukitAyam.dart';
 import 'package:myforestnew/bukitBintang/bukitBintang.dart';
 import 'package:myforestnew/bukitLagong/bukitLagong.dart';
@@ -17,10 +16,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeAdmin extends StatefulWidget {
   @override
-  _HomeAdminState createState() => _HomeAdminState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _HomeAdminState extends State<HomeAdmin> {
+class _HomePageState extends State<HomeAdmin> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> mountains = [
     {
@@ -112,6 +111,39 @@ class _HomeAdminState extends State<HomeAdmin> {
     });
   }
 
+  String userName = '';
+  Future<void> fetchUserProfile() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final DocumentSnapshot profileSnapshot = await FirebaseFirestore.instance
+            .collection('profile')
+            .doc(user.uid)
+            .get();
+
+        if (profileSnapshot.exists) {
+          final profileData = profileSnapshot.data() as Map<String, dynamic>;
+
+          setState(() {
+            userName = "${profileData['first_name']} ${profileData['last_name']}";
+          });
+        } else {
+          print("Profile document does not exist for user: ${user.uid}");
+          setState(() {
+            userName = "User";
+          });
+        }
+      } else {
+        print("No user logged in");
+      }
+    } catch (e) {
+      print("Error fetching profile data: $e");
+      setState(() {
+        userName = "Error";
+      });
+    }
+  }
+
 
   List<Map<String, dynamic>> _filteredMountains = [];
   List<int> _currentImageIndex = [];
@@ -152,8 +184,8 @@ class _HomeAdminState extends State<HomeAdmin> {
       }
     });
   }
-  int _currentIndex = 4;
-  final PageController _pageController = PageController(initialPage: 4);
+  int _currentIndex = 2;
+  final PageController _pageController = PageController(initialPage: 2);
 
   void _onNavItemTap(int index) {
     setState(() {
@@ -175,14 +207,14 @@ class _HomeAdminState extends State<HomeAdmin> {
         children: [
           Icon(
             icon,
-            color: isSelected ? Colors.black : Colors.black45,
+            color: isSelected ? Color(0xFFFFFFFF) : Color(0xFFB0B0B0),
             size: 30,
           ),
           if (isSelected)
             Text(
               label,
               style: TextStyle(
-                color: Colors.black,
+                color: Color(0xFFFFFFFF),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -206,10 +238,10 @@ class _HomeAdminState extends State<HomeAdmin> {
         final savedMountains = snapshot.data ?? [];
 
         return Scaffold(
-          backgroundColor: Colors.black,
-          appBar: _currentIndex == 4
+          backgroundColor: Color(0xFF1F1F1F),
+          appBar: _currentIndex == 2
               ? AppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: Color(0xFF1F1F1F),
             elevation: 0,
             automaticallyImplyLeading: false,
             title: Column(
@@ -243,10 +275,8 @@ class _HomeAdminState extends State<HomeAdmin> {
                 controller: _pageController,
                 physics: NeverScrollableScrollPhysics(),
                 children: [
-                  Permit(),
                   PermitAdmin(),
-                  SavedPage(),
-                  ProfilePage(),
+                  ProfilePageAdmin(),
                   SingleChildScrollView(
                     child: Column(
                       children: [
@@ -258,7 +288,7 @@ class _HomeAdminState extends State<HomeAdmin> {
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                                   child: Text(
-                                    'Hello, Adib said',
+                                    'Hello, $userName',
                                     style: TextStyle(color: Colors.white, fontSize: 20),
                                   ),
                                 ),
@@ -441,7 +471,7 @@ class _HomeAdminState extends State<HomeAdmin> {
                 child: Container(
                   height: 70,
                   decoration: BoxDecoration(
-                    color: Colors.grey[400],
+                    color: Color(0xFF2B2B2B),
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: Row(
@@ -450,8 +480,8 @@ class _HomeAdminState extends State<HomeAdmin> {
                       _buildNavItem(
                         icon: Icons.home,
                         label: 'Home',
-                        isSelected: _currentIndex == 4,
-                        index: 4,
+                        isSelected: _currentIndex == 2,
+                        index: 2,
                       ),
                       _buildNavItem(
                         icon: Icons.insert_drive_file,
@@ -460,22 +490,10 @@ class _HomeAdminState extends State<HomeAdmin> {
                         index: 0,
                       ),
                       _buildNavItem(
-                        icon: Icons.navigation,
-                        label: 'Admin',
-                        isSelected: _currentIndex == 1,
-                        index: 1,
-                      ),
-                      _buildNavItem(
-                        icon: Icons.bookmark,
-                        label: 'Saved',
-                        isSelected: _currentIndex == 2,
-                        index: 2,
-                      ),
-                      _buildNavItem(
                         icon: Icons.person,
                         label: 'Profile',
-                        isSelected: _currentIndex == 3,
-                        index: 3,
+                        isSelected: _currentIndex == 1,
+                        index: 1,
                       ),
                     ],
                   ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:myforestnew/permit/paymentGateway.dart';
+import 'package:myforestnew/permit/ePermit.dart';
 
 class PermitStatus extends StatefulWidget {
   @override
@@ -159,7 +159,7 @@ class _PermitStatusState extends State<PermitStatus> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => PaymentGatewayScreen()),
+                          builder: (context) => ePermit()),
                     );
                   },
                   child: Text("Download E Permit"),

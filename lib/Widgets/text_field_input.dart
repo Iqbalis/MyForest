@@ -6,6 +6,7 @@ class TextFieldInput extends StatelessWidget {
   final TextEditingController textEditingController;
   final double borderRadius;
   final bool obscureText; // Add this property
+  final bool isPassword;
 
   const TextFieldInput({
     Key? key,
@@ -14,6 +15,7 @@ class TextFieldInput extends StatelessWidget {
     required this.textEditingController,
     this.borderRadius = 15.0,
     this.obscureText = false, // Default is false
+    this.isPassword = false,
   }) : super(key: key);
 
   @override

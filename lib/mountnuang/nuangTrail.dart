@@ -1,14 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
-import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-import 'package:http/http.dart' as http;
+
 
 import '../Resources/elevation_profile.dart';
 
@@ -229,10 +227,7 @@ class _NuangTrailScreen extends State<NuangTrail> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
-            );
+            Navigator.pop(context);
           },
         ),
         title: const Text(
@@ -272,13 +267,22 @@ class _NuangTrailScreen extends State<NuangTrail> {
                 ),
               ),
               if (_currentLocation != null && _gpxRoute.isNotEmpty)
-                PolylineLayer(polylines: [
-                  Polyline(
-                    points: _gpxRoute,
-                    strokeWidth: 4.0,
-                    color: Colors.blue,
-                  )
-                ]),
+                PolylineLayer(
+                  polylines: [
+                    // Outer dark polyline (border)
+                    Polyline(
+                      points: _gpxRoute,
+                      strokeWidth: 7.0, // Slightly thicker stroke width
+                      color: Colors.blue.shade900, // Outer dark color
+                    ),
+                    // Inner light polyline (main line)
+                    Polyline(
+                      points: _gpxRoute,
+                      strokeWidth: 4.0, // Slightly thinner stroke width
+                      color: Colors.blue.shade300, // Inner light color
+                    ),
+                  ],
+                ),
             ],
           ),
           Align(

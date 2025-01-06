@@ -1,7 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:myforestnew/Admin/permitAdmin.dart';
 import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:myforestnew/Pages/navigation.dart';
 import 'package:myforestnew/permit/Permit.dart';
@@ -129,9 +129,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               Text(
                                 userName,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: Colors.white,
-                                ),
+                                style: TextStyle(color: Colors.white, fontSize: 30 ,fontWeight: FontWeight.bold),
                               ),
                               IconButton(
                                 icon: Icon(Icons.settings, color: Colors.white),
@@ -148,13 +146,27 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            '$userAge Years Old',
+                            style: TextStyle(color: Colors.white, fontSize: 15),
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            userEmail,
+                            style: TextStyle(color: Colors.white, fontSize: 15),
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: Row(
                             children: [
                               Text(
-                                '$userAge Years Old',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white,
-                                ),
+                                userCity,
+                                style: TextStyle(color: Colors.white, fontSize: 15),
                               ),
                               SizedBox(width: 8.0),
                               Image.asset(
@@ -165,25 +177,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ],
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text(
-                            userEmail,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 4.0),
-                          child: Text(
-                            userCity,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                        SizedBox(height: 5),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(

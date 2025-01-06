@@ -222,10 +222,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
-            );
+            Navigator.pop(context);
           },
         ),
         title: const Text(
@@ -265,13 +262,22 @@ class _LagongTrailScreen extends State<LagongTrail> {
                 ),
               ),
               if (_currentLocation != null && _gpxRoute.isNotEmpty)
-                PolylineLayer(polylines: [
-                  Polyline(
-                    points: _gpxRoute,
-                    strokeWidth: 4.0,
-                    color: Colors.blue,
-                  )
-                ]),
+                PolylineLayer(
+                  polylines: [
+                    // Outer dark polyline (border)
+                    Polyline(
+                      points: _gpxRoute,
+                      strokeWidth: 7.0, // Slightly thicker stroke width
+                      color: Colors.blue.shade900, // Outer dark color
+                    ),
+                    // Inner light polyline (main line)
+                    Polyline(
+                      points: _gpxRoute,
+                      strokeWidth: 4.0, // Slightly thinner stroke width
+                      color: Colors.blue.shade300, // Inner light color
+                    ),
+                  ],
+                ),
             ],
           ),
           Align(

@@ -1,54 +1,38 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:myforestnew/Pages/SignUp.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  //sign up user
-  Future<String> signUpUser ({
-    required String email,
-    required String password,
-    //required String username,
-  }) async {
-    String res = "Some error occured";
-    try {
-      if(email.isNotEmpty || password.isNotEmpty ) {
-        //register user
-        UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
-
-        print(cred.user!.uid);
-        //add user to database
-        _firestore.collection('users').doc(cred.user!.uid).set({
-          //'username': username,
-          'uid': cred.user!.uid,
-          'email': email,
-          'role': "user"
-        });
-        res = "success";
-      }
-    } catch(err) {
-      res = err.toString();
-    }
-    return res;
+  User? getCurrentUser() {
+    return _auth.currentUser;
   }
 
-  // logging in user
-  Future<String> loginUser ({
+  // Sign up user with role
+  Future<String> signUpUser({
     required String email,
     required String password,
+    required String role, // Add role as a parameter (e.g., 'admin', 'user')
   }) async {
-    String res = "Some error occured";
-
+    String res = "Some error occurred";
     try {
-      if(email.isNotEmpty || password.isNotEmpty) {
-        await _auth.signInWithEmailAndPassword(email: email, password: password);
+      if (email.isNotEmpty && password.isNotEmpty && role.isNotEmpty) {
+        // Register user
+        UserCredential cred = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Add user to database with role
+        await _firestore.collection('users').doc(cred.user!.uid).set({
+          'uid': cred.user!.uid,
+          'email': email,
+          'role': role, // Store role in Firestore
+        });
         res = "success";
       } else {
-        res = "Please enter all the fields";
+        res = "Please fill in all fields";
       }
     } catch (err) {
       res = err.toString();
@@ -56,31 +40,23 @@ class AuthMethods {
     return res;
   }
 
-  Future<Map<String, dynamic>?> getUserData() async {
+  // Logging in user with role validation
+  Future<Map<String, String>> loginUser({required String email, required String password}) async {
     try {
-      // Get the currently logged-in user
-      User? currentUser = _auth.currentUser;
+      // Try to login with Firebase Auth
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      String uid = userCredential.user!.uid;
 
-      if (currentUser != null) {
-        // Fetch user data from Firestore
-        DocumentSnapshot userDoc = await _firestore
-            .collection('users') // Replace with your Firestore collection name
-            .doc(currentUser.uid)
-            .get();
-
-        if (userDoc.exists) {
-          return userDoc.data() as Map<String, dynamic>; // Return user data as a map
-        } else {
-          print("User document does not exist.");
-          return null; // User document doesn't exist
-        }
+      // Get the user's role from Firestore
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        String role = userDoc.get('role') ?? 'user'; // Default to user if role not set
+        return {'status': 'success', 'role': role};
       } else {
-        print("No user logged in.");
-        return null; // No user logged in
+        return {'status': 'failed', 'message': 'User not found'};
       }
     } catch (e) {
-      print("Error fetching user data: $e");
-      return null; // Return null on error
+      return {'status': 'failed', 'message': e.toString()};
     }
   }
 }

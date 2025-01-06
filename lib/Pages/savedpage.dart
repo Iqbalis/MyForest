@@ -30,10 +30,6 @@ class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMix
 
   Widget? _getMountainPage(String mountainName) {
     switch (mountainName) {
-      case 'Bukit Ayam':
-        return bukitAyam();
-      case 'Bukit Bintang':
-        return bukitBintang();
       case 'Bukit Lagong':
         return bukitLagong();
       case 'Bukit Pau':
@@ -42,6 +38,10 @@ class _SavedPageState extends State<SavedPage> with SingleTickerProviderStateMix
         return mountHitam();
       case 'Mount Nuang':
         return MountNuangPage();
+      case 'Bukit Guling Ayam':
+        return bukitAyam();
+      case 'Bukit Sri Bintang':
+        return bukitBintang();
       default:
         return null; // Return null if no match is found
     }

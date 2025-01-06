@@ -1,14 +1,12 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
-import 'package:myforestnew/Pages/HomPage.dart';
-import 'package:myforestnew/Pages/savedpage.dart';
+import 'package:myforestnew/Pages/navisaved.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-import 'package:http/http.dart' as http;
 
 class Navigation extends StatefulWidget {
   @override
@@ -100,22 +98,6 @@ class _NavigationScreen extends State<Navigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()), // Replace current screen with Homepage
-            );
-          },
-        ),
-        title: const Text(
-          "Map with Directions",
-          style: TextStyle(fontSize: 20, color: Colors.white),
-        ),
-        backgroundColor: Colors.black,
-      ),
       body: Stack(
         children: [
           Expanded(
@@ -195,53 +177,72 @@ class _NavigationScreen extends State<Navigation> {
           ),
           // Recenter button (top-right)
           Positioned(
-            bottom: 180, // Set to 16 for some padding from the top of the screen
-            right: 19,
-            child: FloatingActionButton(
-              onPressed: _recenterToUserLocation,
-              backgroundColor: Colors.blue,
-              child: const Icon(Icons.my_location, color: Colors.white),
-              shape: CircleBorder(),
+            bottom: 200, // Set to 16 for some padding from the top of the screen
+            right: 20,
+            child: SizedBox(
+              width: 68, // Set the width
+              height: 68, // Set the height
+              child: FloatingActionButton(
+                onPressed: _recenterToUserLocation,
+                backgroundColor: Colors.blue,
+                child: const Icon(
+                  Icons.my_location,
+                  color: Colors.white,
+                  size: 30, // Adjust the icon size
+                ),
+                shape: const CircleBorder(),
+              ),
             ),
+
           ),
           // Add trail button (bottom-right)
           Positioned(
-            bottom: 90,
+            bottom: 110,
             right: 20,
-            child: ElevatedButton(
-              onPressed: () async {
-                final selectedTrail = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SavedPage(),
-                  ),
-                );
+            child: SizedBox(
+              width: 70, // Adjust the width to give space for the shadow
+              height: 70, // Adjust the height similarly
+              child: Material(
+                shape: const CircleBorder(), // Circular shape
+                elevation: 10, // Shadow elevation for a visible shadow
+                shadowColor: Colors.black.withOpacity(0.5), // Shadow color
+                color: Colors.transparent, // No background color for Material itself
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(34), // Matches the circular shape
+                  onTap: () async {
+                    final selectedTrail = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => navisaved(),
+                      ),
+                    );
 
-                if (selectedTrail != null && selectedTrail is List<LatLng>) {
-                  setState(() {
-                    _gpxRoute = selectedTrail;
-                  });
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                shape: CircleBorder(),
-                padding: EdgeInsets.all(20),
-                backgroundColor: Colors.black,
-                shadowColor: Colors.black.withOpacity(0.2),
-                elevation: 6,
-              ),
-              child: Icon(
-                Icons.add,
-                size: 30,
-                color: Colors.white,
+                    if (selectedTrail != null && selectedTrail is List<LatLng>) {
+                      setState(() {
+                        _gpxRoute = selectedTrail;
+                      });
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black, // Button background color
+                      shape: BoxShape.circle, // Ensures the container is circular
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 30, // Adjust the icon size
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
+
         ],
       ),
     );
   }
 }
-
-
-

@@ -3,10 +3,44 @@ import 'package:myforestnew/Pages/Login.dart';
 
 class Getstarted extends StatefulWidget {
   @override
+  _GetstartedState createState() => _GetstartedState();
+}
+
+class _GetstartedState extends State<Getstarted> {
+  @override
+  void initState() {
+    super.initState();
+    // Delay to transition from the logo screen to the onboarding pages
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => OnboardingScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        color: Color(0xFF1F1F1F), // Black background
+        child: Center(
+          child: Image.asset(
+            'assets/myforestlogo.png', // Replace with your logo image asset path
+            width: 150, // Adjust the logo size as needed
+            height: 150,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class OnboardingScreen extends StatefulWidget {
+  @override
   _OnboardingScreenState createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<Getstarted> {
+class _OnboardingScreenState extends State<OnboardingScreen> {
   PageController _pageController = PageController();
   int currentIndex = 0;
 
@@ -19,7 +53,7 @@ class _OnboardingScreenState extends State<Getstarted> {
     // Initialize the onboarding pages, passing the same PageController
     pages.addAll([
       OnboardingPage(
-        title: 'New To Hike Community',
+        title: 'New to Hike Community',
         description: '',
         image: 'assets/getstartedbg.jpg', // Replace with your image
         showSkip: true,
@@ -216,4 +250,3 @@ class OnboardingPage extends StatelessWidget {
     );
   }
 }
-

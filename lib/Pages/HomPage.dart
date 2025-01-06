@@ -13,8 +13,6 @@ import 'package:myforestnew/mountnuang/mountnuang.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
-
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -96,6 +94,41 @@ class _HomePageState extends State<HomePage> {
       'isSaved': false,
     },
   ];
+
+  String userName = '';
+  Future<void> fetchUserProfile() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final DocumentSnapshot profileSnapshot = await FirebaseFirestore.instance
+            .collection('profile')
+            .doc(user.uid)
+            .get();
+
+        if (profileSnapshot.exists) {
+          final profileData = profileSnapshot.data() as Map<String, dynamic>;
+
+          setState(() {
+            userName = "${profileData['first_name']} ${profileData['last_name']}";
+          });
+        } else {
+          print("Profile document does not exist for user: ${user.uid}");
+          setState(() {
+            userName = "User";
+          });
+        }
+      } else {
+        print("No user logged in");
+      }
+    } catch (e) {
+      print("Error fetching profile data: $e");
+      setState(() {
+        userName = "Error";
+      });
+    }
+  }
+
+
   bool isSaved = false;
   String? savedDocumentId;
   Stream<List<String>> _getSavedMountainsStream() {
@@ -119,6 +152,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    fetchUserProfile();
     _currentImageIndex = List.filled(mountains.length, 0);
     _filteredMountains = mountains;
     _searchController.addListener(_filterMountains);
@@ -178,15 +212,14 @@ class _HomePageState extends State<HomePage> {
             color: isSelected ? Color(0xFFFFFFFF) : Color(0xFFB0B0B0),
             size: 30,
           ),
-          if (isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: Color(0xFFFFFFFF),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              color: Color(0xFFFFFFFF),
+              fontSize: 7,
+              fontWeight: FontWeight.bold,
             ),
+          ),
         ],
       ),
     );
@@ -258,7 +291,7 @@ class _HomePageState extends State<HomePage> {
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                                   child: Text(
-                                    'Hello, Adib said',
+                                    'Hello, $userName',
                                     style: TextStyle(color: Colors.white, fontSize: 20),
                                   ),
                                 ),

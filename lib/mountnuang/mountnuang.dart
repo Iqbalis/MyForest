@@ -1,16 +1,16 @@
-
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:myforestnew/mountnuang/nuangTrail.dart';
 import 'package:myforestnew/permit/Permit.dart';
-import 'package:myforestnew/mountnuang/Imagenuang.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:myforestnew/mountnuang/Nuangloc.dart';
 import 'package:myforestnew/mountnuang/forecast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
-import 'nuangTrail.dart';
 
 class MountNuangPage extends StatefulWidget {
   @override
@@ -24,11 +24,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
   int lowTemp = 0;
   String locationName = '';
   List<Map<String, dynamic>> hourlyForecast = [];
-  final List<String> imgList = [
-    'assets/nuang/nuang1.png',
-    'assets/nuang/nuang2.jpeg',
-    'assets/nuang/nuang3.jpg',
-  ];
+
 
   @override
   void initState() {
@@ -39,20 +35,29 @@ class _MountNuangPageState extends State<MountNuangPage> {
     fetchWeatherData();
     _checkIfSaved();
   }
+
   bool isSaved = false;
   String? savedDocumentId;
+
   Future<void> _checkIfSaved() async {
     final user = FirebaseAuth.instance.currentUser;
 
+    // Optimistically assume the mount isn't saved
+    setState(() {
+      isSaved = false;
+      savedDocumentId = null;
+    });
+
     if (user != null) {
       try {
-        // Query Firestore to see if the mount is already saved by the user
+        // Perform Firestore query asynchronously
         final query = await FirebaseFirestore.instance
             .collection('saved_mounts')
             .where('name', isEqualTo: 'Mount Nuang') // Match the mount name
             .where('userId', isEqualTo: user.uid) // Match the current user
             .get();
 
+        // Update state only if a match is found
         if (query.docs.isNotEmpty) {
           setState(() {
             isSaved = true;
@@ -64,6 +69,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
       }
     }
   }
+
   Future<void> fetchWeatherData() async {
     const String apiKey = '8f5b43dd3e53fb197df8ed5a8cae93c5';
     const String location = 'Hulu Langat';
@@ -96,6 +102,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
     }
   }
 
+
   void _showPopup(BuildContext context) {
     showDialog(
       context: context,
@@ -120,7 +127,12 @@ class _MountNuangPageState extends State<MountNuangPage> {
                     ),
                   );
                 },
-                child: Text('Apply Here'),
+                child: Text(
+                  'Apply Here',
+                  style: TextStyle(
+                    color: Colors.black,  // Change text color to white
+                  ),
+                ),
               ),
             ],
           ),
@@ -132,7 +144,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF333333),
       body: Stack(
         children: [
           _buildImageSlider(), // The image slider
@@ -156,7 +168,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
               height: 45, // Set the height of the circle
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black, // Background color of the circle
+                color: Color(0xFF333333), // Background color of the circle
               ),
               child: IconButton(
                 icon: Icon(Icons.arrow_back, color: Colors.white, size: 30),
@@ -174,7 +186,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
               height: 45, // Set the height of the circle
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black, // Background color of the circle
+                color: Color(0xFF333333), // Background color of the circle
               ),
               child: IconButton(
                 icon: Icon(
@@ -184,7 +196,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
                 ),
                 onPressed: () async {
                   final user = FirebaseAuth.instance.currentUser;
-
+                  HapticFeedback.vibrate();
                   if (user != null) {
                     final mountData = {
                       'name': 'Mount Nuang',
@@ -213,7 +225,8 @@ class _MountNuangPageState extends State<MountNuangPage> {
                           });
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Mount unsaved successfully!')),
+                            SnackBar(
+                                content: Text('Mount unsaved successfully!')),
                           );
                         }
                       } else {
@@ -228,7 +241,8 @@ class _MountNuangPageState extends State<MountNuangPage> {
                         });
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Mount Nuang saved successfully!')),
+                          SnackBar(content: Text(
+                              'Mount Nuang saved successfully!')),
                         );
                       }
                     } catch (e) {
@@ -238,7 +252,8 @@ class _MountNuangPageState extends State<MountNuangPage> {
                     }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Please log in to save this mount.')),
+                      SnackBar(
+                          content: Text('Please log in to save this mount.')),
                     );
                   }
                 },
@@ -251,6 +266,12 @@ class _MountNuangPageState extends State<MountNuangPage> {
   }
 
   Widget _buildImageSlider() {
+    final List<String> imgList = [
+      'assets/nuang/nuang1.png',
+      'assets/nuang/nuang2.jpeg',
+      'assets/nuang/nuang3.jpg',
+    ];
+
     return CarouselSlider(
       options: CarouselOptions(
         height: MediaQuery
@@ -258,34 +279,30 @@ class _MountNuangPageState extends State<MountNuangPage> {
             .size
             .height * 0.40,
         viewportFraction: 1.0,
-        enableInfiniteScroll: false,
+        // Show one image at a time
+        enableInfiniteScroll: true,
+        // Enable infinite looping
         enlargeCenterPage: false,
+        autoPlay: true,
+        // Enable auto-scrolling
+        autoPlayInterval: Duration(seconds: 5),
+        // Time between slides
+        scrollDirection: Axis.horizontal, // Allow horizontal scrolling
       ),
       items: imgList.map((item) =>
-          GestureDetector(
-            onTap: () {
-              print('Image tapped'); // Debugging statement
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ImageNuang(),
-                ),
-              );
-            },
-            child: Container(
-              width: MediaQuery
-                  .of(context)
-                  .size
-                  .width, // Set width explicitly
-              height: MediaQuery
-                  .of(context)
-                  .size
-                  .height * 0.40, // Set height explicitly
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(item),
-                  fit: BoxFit.cover,
-                ),
+          Container(
+            width: MediaQuery
+                .of(context)
+                .size
+                .width,
+            height: MediaQuery
+                .of(context)
+                .size
+                .height * 0.40,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(item),
+                fit: BoxFit.cover,
               ),
             ),
           )).toList(),
@@ -295,7 +312,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
 
   Widget _buildRoundedContent(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(25.0),
       decoration: BoxDecoration(
         color: Colors.black, // Background color of the content section
         borderRadius: BorderRadius.only(
@@ -375,14 +392,6 @@ class _MountNuangPageState extends State<MountNuangPage> {
             children: [
               Text('Reviews',
                   style: TextStyle(fontSize: 20, color: Colors.white)),
-              Row(
-                children: [
-                  Text('4.7',
-                      style: TextStyle(fontSize: 18, color: Colors.white)),
-                  SizedBox(width: 4),
-                  Icon(Icons.star, color: Colors.yellow[800], size: 20),
-                ],
-              ),
             ],
           ),
           SizedBox(height: 10),
@@ -404,10 +413,10 @@ class _MountNuangPageState extends State<MountNuangPage> {
           ),
         );
       },
-      child : Container(
+      child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blueGrey.shade900,
+          color: Colors.grey[900],
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -475,7 +484,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('1,493 m', style: TextStyle(fontSize: 24,
+              Text('4,898 ft', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),
@@ -487,7 +496,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
           SizedBox(height: 15),
           Row(
             children: [
-              Text('9 hour 30 min', style: TextStyle(fontSize: 24,
+              Text('3 hour 30 min', style: TextStyle(fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
               SizedBox(width: 10),
@@ -512,98 +521,268 @@ class _MountNuangPageState extends State<MountNuangPage> {
     );
   }
 
-
   Widget _buildReviewsSection() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildReviewItem('Adib', 'The trail was easy and fun', 5),
-        _buildReviewItem(
-            'Iqbal Ishak', 'The trail was fun but a bit challenging', 4),
-        _buildReviewItem('Amal Hakimi', 'A beautiful, scenic experience', 5),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-            _showReviewInput();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white24,
-          ),
-          child: Text('Write a Review', style: TextStyle(color: Colors.white)),
-        ),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('review')  // Ensure this is the correct collection name
+              .where('mountName', isEqualTo: 'Mount Nuang')  // Mount name should be 'Mount Nuang' in your data
+              .orderBy('timestamp', descending: true)  // Order by timestamp descending
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              print("Error fetching reviews: ${snapshot.error}");
+              return Center(child: Text('Error fetching reviews.'));
+            }
 
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            final reviews = snapshot.data!.docs;
+
+            print("Fetched ${reviews.length} reviews.");
+
+            if (reviews.isEmpty) {
+              return Text(
+                'No reviews yet. Be the first to leave one!',
+                style: TextStyle(color: Colors.white70),
+              );
+            }
+
+            return Column(
+              children: reviews.map((doc) {
+                try {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final userId = data['userId']; // Get the userId to fetch first_name
+                  final reviewText = data['reviewText'] ?? '';
+                  final rating = data['rating'] ?? 0;
+                  final timestamp = data['timestamp']?.toDate(); // Get timestamp and convert to Date
+
+                  // Format the timestamp
+                  String formattedDate = timestamp != null
+                      ? DateFormat('dd/MM/yyyy HH:mm').format(timestamp)
+                      : 'No date available';
+
+                  // Fetch user profile (first_name) from 'profile' collection
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('profile') // Profile collection
+                        .doc(userId)
+                        .get(),
+                    builder: (context, profileSnapshot) {
+                      if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+
+                      if (profileSnapshot.hasError) {
+                        return Center(child: Text('Error loading profile: ${profileSnapshot.error}'));
+                      }
+
+                      if (!profileSnapshot.hasData || !profileSnapshot.data!.exists) {
+                        return Text('User not found');
+                      }
+
+                      final userData = profileSnapshot.data!.data() as Map<String, dynamic>;
+                      final firstName = userData['first_name'] ?? 'Anonymous';
+
+                      // Clamp rating to ensure valid value
+                      final clampedRating = rating < 0 ? 0 : (rating > 5 ? 5 : rating);
+
+                      return _buildReviewItem(
+                        firstName,  // Use first_name instead of userId
+                        reviewText,
+                        clampedRating,
+                        formattedDate, // Pass the formatted timestamp here
+                      );
+                    },
+                  );
+                } catch (e) {
+                  print("Error reading review data: $e");
+                  return Text('Error loading review data.');
+                }
+              }).toList(),
+            );
+          },
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton(
+            onPressed: _showReviewInput,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[800],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0), // Adjust the value to change roundness
+              ),
+            ),
+            child: Text(
+              'Write a Review',
+              style: TextStyle(
+                color: Colors.white, // Change text color to white
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildReviewItem(String name, String review, int stars) {
+  Widget _buildReviewItem(String firstName, String reviewText, int rating, String timestamp) {
     return Container(
       padding: EdgeInsets.all(20),
       margin: EdgeInsets.only(bottom: 12),
-      // Added margin for spacing between boxes
       decoration: BoxDecoration(
-        color: Colors.grey[900], // Background color for each review box
-        borderRadius: BorderRadius.circular(25), // Rounded corners
+        color: Colors.grey[900], // Light grey background
+        borderRadius: BorderRadius.circular(16.0), // Rounded corners
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Display user name with the star rating on the right
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, // Pushes elements to opposite sides
             children: [
-              Text(name, style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.white)),
-              Spacer(),
+              Text(
+                firstName,
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white), // White color
+              ),
               Row(
-                children: List.generate(stars, (index) =>
-                    Icon(Icons.star, color: Colors.yellow[800])),
+                children: List.generate(
+                  rating,
+                      (index) => Icon(
+                    Icons.star,
+                    color: Colors.yellow[800],
+                  ),
+                ),
               ),
             ],
           ),
-          SizedBox(height: 4),
-          Text(review, style: TextStyle(color: Colors.white70)),
+          SizedBox(height: 4.0),
+          // Review text and timestamp in the same row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  reviewText,
+                  style: TextStyle(color: Colors.white70), // Light grey color
+                ),
+              ),
+              SizedBox(width: 4.0), // Spacing between the text and timestamp
+              Text(
+                timestamp,
+                style: TextStyle(fontSize: 12.0, color: Colors.white60), // Lighter color for timestamp
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
 
+
+
+
   void _showReviewInput() {
+    String reviewText = '';
+    int rating = 0; // Default rating (can enhance with a rating input)
+
     showDialog(
       context: context,
       builder: (context) {
-        String review = '';
-        return AlertDialog(
-          backgroundColor: Colors.black87,
-          title: Text('Write a Review', style: TextStyle(color: Colors.white)),
-          content: TextField(
-            onChanged: (value) {
-              review = value;
-            },
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Enter your review here',
-              hintStyle: TextStyle(color: Colors.white54),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel', style: TextStyle(color: Colors.white)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Handle submitting the review
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent),
-              child: Text('Submit'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {  // StatefulBuilder to make UI updates within the dialog
+            return AlertDialog(
+              backgroundColor: Colors.black87,
+              title: Text('Write a Review', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    onChanged: (value) {
+                      reviewText = value;
+                    },
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your review here',
+                      hintStyle: TextStyle(color: Colors.white54),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  // Rating Selection (Stars)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < rating ? Icons.star : Icons.star_border,
+                          color: Colors.yellow[800],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            rating = index + 1; // Update rating when a star is clicked
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Cancel', style: TextStyle(color: Colors.white)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      try {
+                        await FirebaseFirestore.instance.collection('review').add({
+                          'mountName': 'Mount Nuang',  // Set mount name
+                          'userId': user.uid,  // Use user ID for tracking who reviewed
+                          'reviewText': reviewText,  // Review text
+                          'rating': rating,  // Rating value
+                          'timestamp': FieldValue.serverTimestamp(),  // Timestamp for sorting
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Review submitted successfully!')),
+                        );
+
+                        setState(() {}); // Trigger a rebuild to display the new review
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to submit review: $e')),
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please log in to write a review.')),
+                      );
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent),
+                  child: Text(
+                    'Submit',
+                    style: TextStyle(
+                      color: Colors.white,  // Change text color to white
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
+
+
 }

@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:myforestnew/Admin/homeadmin.dart';
 import 'package:myforestnew/Pages/ForgetPass.dart';
-import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:myforestnew/Resources/auth_method.dart';
 import 'package:myforestnew/Resources/utils.dart';
 import 'package:myforestnew/Widgets/text_field_input.dart';
 
 class AdminLoginPage extends StatefulWidget {
-
   @override
-  State<AdminLoginPage> createState() => __LogininScreenState();
+  State<AdminLoginPage> createState() => __LoginScreenState();
 }
 
-class __LogininScreenState extends State<AdminLoginPage> {
+class __LoginScreenState extends State<AdminLoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
+  bool _isLoading = false;  // Add loading state to handle the loading indicator
 
   @override
   void dispose() {
@@ -23,50 +22,59 @@ class __LogininScreenState extends State<AdminLoginPage> {
     _passwordController.dispose();
   }
 
-  void loginUser() async{
+  void loginUser() async {
     setState(() {
-      _isLoading = true;
+      _isLoading = true;  // Set loading state to true when login begins
     });
-    String res = await AuthMethods().loginUser(
-        email: _emailController.text,
-        password: _passwordController.text
+
+    // Call AuthMethods and get user role validation
+    Map<String, String> res = await AuthMethods().loginUser(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
     );
 
-    if(res == "success") {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
-      );
+    if (res['status'] == 'success') {
+      // Ensure the role is admin
+      if (res['role'] == 'admin') {
+        // Navigate to the admin dashboard
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomeAdmin(), // Or Admin Dashboard page
+          ),
+        );
+      } else {
+        // Show error if role is not admin
+        showSnackBar("Access denied! Only admins can log in.", context);
+      }
     } else {
-      //
-      showSnackBar(res, context);
-
+      // Show any other errors
+      showSnackBar(res['message'] ?? "Login failed", context);
     }
+
     setState(() {
-      _isLoading = false;
+      _isLoading = false;  // Set loading state to false after login process
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1F1F1F), // Background color to match the design
+      backgroundColor: const Color(0xFF1F1F1F), // Background color to match the design
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Tree icon or logo (placeholder for now)
+            // Tree icon or logo
             Center(
               child: Image.asset(
                 'assets/myforestlogo.png',
                 height: 150,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Title
-            Text(
+            const Text(
               'MyForest',
               style: TextStyle(
                 fontSize: 32,
@@ -74,28 +82,30 @@ class __LogininScreenState extends State<AdminLoginPage> {
                 color: Colors.white,
               ),
             ),
-            Text(
+            const Text(
               'Admin',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.white70,
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             // Email input field
             TextFieldInput(
               hintText: 'Admin Email',
-              textInputType: TextInputType.text,
+              textInputType: TextInputType.emailAddress,
               textEditingController: _emailController,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Password input field
             TextFieldInput(
               hintText: 'Password',
-              textInputType: TextInputType.text,
+              textInputType: TextInputType.visiblePassword,
               textEditingController: _passwordController,
+              isPassword: true,
+              obscureText: true,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             // Forgot password link
             Align(
               alignment: Alignment.centerLeft,
@@ -107,29 +117,31 @@ class __LogininScreenState extends State<AdminLoginPage> {
                     ),
                   );
                 },
-                child: Text(
+                child: const Text(
                   'Forget Password?',
                   style: TextStyle(color: Colors.lightBlueAccent),
                 ),
               ),
             ),
-            SizedBox(height: 30),
-            // Login button (arrow icon)
+            const SizedBox(height: 30),
+            // Login button with a loading indicator
             ElevatedButton(
-              onPressed: loginUser,
+              onPressed: _isLoading ? null : loginUser,  // Disable button when loading
               style: ElevatedButton.styleFrom(
-                shape: CircleBorder(),
-                padding: EdgeInsets.all(20),
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(20),
                 backgroundColor: Colors.white,
               ),
-              child: Icon(
+              child: _isLoading
+                  ? const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              )
+                  : const Icon(
                 Icons.arrow_forward,
                 color: Colors.black,
                 size: 30,
               ),
             ),
-            SizedBox(height: 40),
-            // Signup prompt
           ],
         ),
       ),

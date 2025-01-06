@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myforestnew/Admin/AdminLogin.dart';
 import 'package:myforestnew/Pages/ForgetPass.dart';
 import 'package:myforestnew/Pages/GetStarted.dart';
@@ -18,6 +19,8 @@ class __LogininScreenState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   void dispose() {
     super.dispose();
@@ -25,28 +28,33 @@ class __LogininScreenState extends State<LoginPage> {
     _passwordController.dispose();
   }
 
-  // Modified loginUser method to include a 1-second delay before login attempt
   void loginUser() async {
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate a delay of 1 second before starting the login process
-    await Future.delayed(Duration(seconds: 1));
-
-    String res = await AuthMethods().loginUser(
-      email: _emailController.text,
-      password: _passwordController.text,
+    // Call AuthMethods and get user role validation
+    Map<String, String> res = await AuthMethods().loginUser(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
     );
 
-    if (res == "success") {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
-      );
+    if (res['status'] == 'success') {
+      // Ensure the role is admin
+      if (res['role'] == 'user') {
+        // Navigate to the admin dashboard
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomePage(), // Or Admin Dashboard page
+          ),
+        );
+      } else {
+        // Show error if role is not admin
+        showSnackBar("Access denied! Only admins can log in.", context);
+      }
     } else {
-      showSnackBar(res, context);
+      // Show any other errors
+      showSnackBar(res['message'] ?? "Login failed", context);
     }
 
     setState(() {
@@ -54,23 +62,24 @@ class __LogininScreenState extends State<LoginPage> {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1F1F1F), // Background color
+      backgroundColor: const Color(0xFF1F1F1F), // Background color
       appBar: AppBar(
-        backgroundColor: Color(0xFF1F1F1F),
-        iconTheme: IconThemeData(
+        backgroundColor: const Color(0xFF1F1F1F),
+        iconTheme: const IconThemeData(
           color: Colors.white,
         ),
       ),
       drawer: Drawer(
-        backgroundColor: Colors.grey[850], // Set the drawer background to grey
+        backgroundColor: Colors.grey[850],
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.black,
               ),
               child: Column(
@@ -84,14 +93,14 @@ class __LogininScreenState extends State<LoginPage> {
               ),
             ),
             ListTile(
-              tileColor: Colors.grey[850], // Background color of the tile
-              leading: Icon(
+              tileColor: Colors.grey[850],
+              leading: const Icon(
                 Icons.explore,
-                color: Colors.white, // Icon color
+                color: Colors.white,
               ),
-              title: Text(
+              title: const Text(
                 'Get Started',
-                style: TextStyle(color: Colors.white), // Text color
+                style: TextStyle(color: Colors.white),
               ),
               onTap: () {
                 Navigator.of(context).push(
@@ -102,14 +111,14 @@ class __LogininScreenState extends State<LoginPage> {
               },
             ),
             ListTile(
-              tileColor: Colors.grey[850], // Background color of the tile
-              leading: Icon(
+              tileColor: Colors.grey[850],
+              leading: const Icon(
                 Icons.admin_panel_settings,
-                color: Colors.white, // Icon color
+                color: Colors.white,
               ),
-              title: Text(
+              title: const Text(
                 'Admin Login',
-                style: TextStyle(color: Colors.white), // Text color
+                style: TextStyle(color: Colors.white),
               ),
               onTap: () {
                 Navigator.of(context).push(
@@ -129,17 +138,15 @@ class __LogininScreenState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 20), // Add spacing from the top
-                // Tree icon or logo
+                const SizedBox(height: 20),
                 Center(
                   child: Image.asset(
                     'assets/myforestlogo.png',
                     height: 150,
                   ),
                 ),
-                SizedBox(height: 20),
-                // Title
-                Text(
+                const SizedBox(height: 20),
+                const Text(
                   'MyForest',
                   style: TextStyle(
                     fontSize: 32,
@@ -147,30 +154,27 @@ class __LogininScreenState extends State<LoginPage> {
                     color: Colors.white,
                   ),
                 ),
-                Text(
+                const Text(
                   'Sign In',
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.white70,
                   ),
                 ),
-                SizedBox(height: 50),
-                // Email input field
+                const SizedBox(height: 50),
                 TextFieldInput(
                   hintText: 'Email',
                   textInputType: TextInputType.text,
                   textEditingController: _emailController,
                 ),
-                SizedBox(height: 20),
-                // Password input field
+                const SizedBox(height: 20),
                 TextFieldInput(
                   hintText: 'Password',
                   textInputType: TextInputType.text,
                   textEditingController: _passwordController,
                   obscureText: true,
                 ),
-                SizedBox(height: 0),
-                // Forgot password link
+                const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
@@ -181,34 +185,32 @@ class __LogininScreenState extends State<LoginPage> {
                         ),
                       );
                     },
-                    child: Text(
+                    child: const Text(
                       'Forget Password?',
                       style: TextStyle(color: Colors.lightBlueAccent),
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
-                // Login button (arrow icon)
+                const SizedBox(height: 10),
                 _isLoading
-                    ? CircularProgressIndicator(
+                    ? const CircularProgressIndicator(
                   color: Colors.white,
-                ) // Show loading indicator while logging in
+                )
                     : ElevatedButton(
                   onPressed: loginUser,
                   style: ElevatedButton.styleFrom(
-                    shape: CircleBorder(),
-                    padding: EdgeInsets.all(20),
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
                     backgroundColor: Colors.white,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.arrow_forward,
                     color: Colors.black,
                     size: 30,
                   ),
                 ),
-                SizedBox(height: 40),
-                // Signup prompt
-                Text(
+                const SizedBox(height: 40),
+                const Text(
                   "Don't have an account?",
                   style: TextStyle(color: Colors.white70),
                 ),
@@ -220,12 +222,12 @@ class __LogininScreenState extends State<LoginPage> {
                       ),
                     );
                   },
-                  child: Text(
+                  child: const Text(
                     'Sign up now',
                     style: TextStyle(color: Colors.lightBlueAccent),
                   ),
                 ),
-                SizedBox(height: 20), // Spacing for scrollable content
+                const SizedBox(height: 20),
               ],
             ),
           ),
