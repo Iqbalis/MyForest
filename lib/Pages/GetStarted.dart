@@ -53,7 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Initialize the onboarding pages, passing the same PageController
     pages.addAll([
       OnboardingPage(
-        title: 'New to Hike Community',
+        title: 'New to Hike \n Community ?',
         description: '',
         image: 'assets/getstartedbg.jpg', // Replace with your image
         showSkip: true,

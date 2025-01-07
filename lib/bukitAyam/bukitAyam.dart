@@ -628,6 +628,7 @@ class _bukitAyamPageState extends State<bukitAyam> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    cursorColor: Colors.white,
                     onChanged: (value) {
                       reviewText = value;
                     },
@@ -635,6 +636,12 @@ class _bukitAyamPageState extends State<bukitAyam> {
                     decoration: InputDecoration(
                       hintText: 'Enter your review here',
                       hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white70), // White underline when not focused
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white), // White underline when focused
+                      ),
                     ),
                   ),
                   SizedBox(height: 10),

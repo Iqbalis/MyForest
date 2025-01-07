@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:myforestnew/Resources/permit_method.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Permit extends StatefulWidget {
   @override
@@ -44,7 +47,7 @@ class _PermitApplicationState extends State<Permit> {
       _participants.removeAt(index);
     });
   }
-
+  final userUID = FirebaseAuth.instance.currentUser!.uid;
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       print("Form is valid, submitting...");
@@ -71,13 +74,48 @@ class _PermitApplicationState extends State<Permit> {
 
       print("Response from API: $response");
 
+      // Generate a new serial number
+      String newSiriNumber = (Random().nextInt(90000) + 10000).toString();
+
+      print("Generated Serial Number: $newSiriNumber");
+
+      try {
+        final userUID = FirebaseAuth.instance.currentUser!.uid;
+
+        // Check if a document already exists for this user
+        final docSnapshot = await FirebaseFirestore.instance
+            .collection('siri_number')
+            .doc(userUID)
+            .get();
+
+        if (docSnapshot.exists) {
+          // Delete the existing document
+          await FirebaseFirestore.instance
+              .collection('siri_number')
+              .doc(userUID)
+              .delete();
+
+          print("Deleted old No Siri document for user: $userUID");
+        }
+
+        // Save the new serial number
+        await FirebaseFirestore.instance.collection('siri_number').doc(userUID).set({
+          'user_uid': userUID,
+          'siri_number': newSiriNumber,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        print("New serial number saved to Firestore successfully.");
+      } catch (e) {
+        print("Error saving to Firestore: $e");
+      }
+
       _showSubmissionPopup();
       _resetForm();
     } else {
       print("Form validation failed");
     }
   }
-
   void _showSubmissionPopup() {
     Future.delayed(Duration(milliseconds: 200), () {
       showDialog(
@@ -207,7 +245,6 @@ class _PermitApplicationState extends State<Permit> {
                   child: TextFormField(
                     cursorColor: Colors.white,
                     controller: _guideNumberController,
-                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Guide Number',
                       labelStyle: TextStyle(color: Colors.white),

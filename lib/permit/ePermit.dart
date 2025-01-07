@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'dart:math';
 import 'dart:typed_data';
 
 class ePermit extends StatelessWidget {
@@ -14,11 +13,11 @@ class ePermit extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white70, // Set the AppBar background color to white
-        iconTheme: const IconThemeData(color: Colors.black), // Set the icon color to black
-        titleTextStyle: const TextStyle(color: Colors.black), // Set the title text color to black
+        backgroundColor: Colors.white70,
+        iconTheme: const IconThemeData(color: Colors.black),
+        titleTextStyle: const TextStyle(color: Colors.black),
       ),
-      backgroundColor: Colors.white, // Set the background color of the Scaffold to white
+      backgroundColor: Colors.white,
       body: const PermitContent(),
     );
   }
@@ -31,7 +30,7 @@ Future<pw.ImageProvider?> loadImageFromAssets(String path) async {
     return pw.MemoryImage(list);
   } catch (e) {
     debugPrint("Error loading image from assets: $e");
-    return null; // Return null if the image fails to load
+    return null;
   }
 }
 
@@ -46,11 +45,13 @@ class _PermitContentState extends State<PermitContent> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Map<String, dynamic>? permitData;
+  String? siriNumber;
 
   @override
   void initState() {
     super.initState();
     fetchPermitData();
+    fetchSiriNumber();
   }
 
   Future<void> fetchPermitData() async {
@@ -60,10 +61,9 @@ class _PermitContentState extends State<PermitContent> {
         throw Exception("User not logged in");
       }
 
-      // Fetch permit linked to user UID
       final permitQuery = await _firestore
           .collection('permits')
-          .doc(user.uid) // Assuming the permit is stored by user UID
+          .doc(user.uid)
           .get();
 
       if (permitQuery.exists) {
@@ -80,10 +80,30 @@ class _PermitContentState extends State<PermitContent> {
     }
   }
 
-  String generateUniqueNumber() {
-    final random = Random();
-    return (random.nextInt(99999) + 10000).toString(); // Generate a 5-digit unique number
+  Future<void> fetchSiriNumber() async {
+    try {
+      final userUID = FirebaseAuth.instance.currentUser!.uid; // Get the current user's UID
+
+      // Fetch the document for the specific user UID
+      final siriQuery = await FirebaseFirestore.instance
+          .collection('siri_number')
+          .where('user_uid', isEqualTo: userUID)
+          .get();
+
+      if (siriQuery.docs.isNotEmpty) {
+        setState(() {
+          siriNumber = siriQuery.docs.first.data()['siri_number'] ?? 'Unknown'; // Access siri_number field
+        });
+      } else {
+        throw Exception("No Siri Number found for this user");
+      }
+    } catch (e) {
+      setState(() {
+        siriNumber = "Error: $e";
+      });
+    }
   }
+
 
   Future<void> generatePdf(BuildContext context) async {
     try {
@@ -94,12 +114,12 @@ class _PermitContentState extends State<PermitContent> {
           : "Unknown";
       final String mountain = permitData?['mountain'] ?? "Unknown";
       final String date = permitData?['date'] ?? "Unknown";
+      final String guide = permitData?['guide'] ?? "Unknown";
 
       int participantCount = participants?.length ?? 0;
       final double totalAmount = participantCount * 5.0; // RM 5 per participant
-      final String signature = "assets/signature.png"; // Ensure this exists in pubspec.yaml
 
-      final imageProvider = await loadImageFromAssets(signature);
+      final Uint8List signatureImage = await _loadAssetImage("assets/signature.jpg");
 
       pdf.addPage(
         pw.Page(
@@ -120,7 +140,9 @@ class _PermitContentState extends State<PermitContent> {
                       style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
                   pw.Text("(SEKSYEN 47(3))", style: pw.TextStyle(fontSize: 12)),
                   pw.SizedBox(height: 16),
-                  pw.Text("Siri No. ${generateUniqueNumber()}", style: pw.TextStyle(fontSize: 16)),
+                  pw.Text("Siri No. $siriNumber", style: pw.TextStyle(fontSize: 20)),
+                  pw.SizedBox(height: 16),
+                  pw.Text("Guide No. $guide", style: pw.TextStyle(fontSize: 16)),
                   pw.Text("Name: $name", style: pw.TextStyle(fontSize: 14)),
                   pw.Text("Mountain: $mountain", style: pw.TextStyle(fontSize: 14)),
                   pw.SizedBox(height: 16),
@@ -140,7 +162,10 @@ class _PermitContentState extends State<PermitContent> {
                     ),
                   ),
                   pw.SizedBox(height: 16),
-                  if (imageProvider != null) pw.Image(imageProvider) else pw.Text("Signature not available"),
+                  if (signatureImage != null)
+                    pw.Image(pw.MemoryImage(signatureImage), height: 100, width: 200)
+                  else
+                    pw.Text("Signature not available", style: pw.TextStyle(fontSize: 14)),
                 ],
               ),
             );
@@ -157,15 +182,25 @@ class _PermitContentState extends State<PermitContent> {
       );
     }
   }
+  Future<Uint8List> _loadAssetImage(String path) async {
+    try {
+      final ByteData data = await rootBundle.load(path);
+      return data.buffer.asUint8List();
+    } catch (e) {
+      print("Error loading image: $e");
+      return Uint8List(
+          0); // Return an empty Uint8List if the image is not found
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (permitData == null) {
+    if (permitData == null || siriNumber == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (permitData?['error'] != null) {
-      return Center(child: Text('Error: ${permitData?['error']}'));
+    if (permitData?['error'] != null || siriNumber == "Error") {
+      return Center(child: Text('Error: ${permitData?['error'] ?? siriNumber}'));
     }
 
     final participants = permitData?['participants'] as List<dynamic>?;
@@ -175,6 +210,7 @@ class _PermitContentState extends State<PermitContent> {
         : "Unknown";
     final String mountain = permitData?['mountain'] ?? "Unknown";
     final String date = permitData?['date'] ?? "Unknown";
+    final String guide = permitData?['guide'] ?? "Unknown";
 
     int participantCount = participants?.length ?? 0;
     final double totalAmount = participantCount * 5.0;
@@ -182,7 +218,7 @@ class _PermitContentState extends State<PermitContent> {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Align(
-        alignment: Alignment.topCenter,  // Align content to the top center
+        alignment: Alignment.topCenter,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -220,10 +256,12 @@ class _PermitContentState extends State<PermitContent> {
               ),
               const SizedBox(height: 16),
               Text(
-                "Siri No. ${generateUniqueNumber()}",
-                style: const TextStyle(fontSize: 14),
+                "Siri No. $siriNumber",
+                style: const TextStyle(fontSize: 20),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 16),
+              Text("Guide No. $guide", style: TextStyle(fontSize: 16)),
               Text(
                 "Name: $name",
                 style: const TextStyle(fontSize: 14),
@@ -235,17 +273,43 @@ class _PermitContentState extends State<PermitContent> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              Text(
-                "Participants: $participantCount",
-                style: const TextStyle(fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                "This permit is valid from $date.",
-                style: const TextStyle(fontSize: 14),
+              Text.rich(
+                TextSpan(
+                  text: "This permit is valid from ",
+                  style: const TextStyle(fontSize: 14),
+                  children: [
+                    TextSpan(
+                      text: "$date",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(
+                      text: ".",
+                    ),
+                  ],
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Participants: $participantCount", style: TextStyle(fontSize: 14)),
+                    Text("RM${totalAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Image.asset(
+                "assets/signature.jpg",
+                height: 100, // Adjust height as needed
+                width: 200,  // Adjust width as needed
+                errorBuilder: (context, error, stackTrace) {
+                  return const Text("Signature not available");
+                },
+              ),
+              SizedBox(height: 40),
               ElevatedButton(
                 onPressed: () => generatePdf(context),
                 style: ElevatedButton.styleFrom(
@@ -260,5 +324,4 @@ class _PermitContentState extends State<PermitContent> {
       ),
     );
   }
-
 }

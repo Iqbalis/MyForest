@@ -174,9 +174,9 @@ class __LogininScreenState extends State<LoginPage> {
                   textEditingController: _passwordController,
                   obscureText: true,
                 ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
+                const SizedBox(height: 0), // Adjust spacing between the box and the text
+                Padding(
+                  padding: const EdgeInsets.only(right: 190.0),
                   child: TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -191,7 +191,8 @@ class __LogininScreenState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+
+                const SizedBox(height: 20),
                 _isLoading
                     ? const CircularProgressIndicator(
                   color: Colors.white,
@@ -209,7 +210,7 @@ class __LogininScreenState extends State<LoginPage> {
                     size: 30,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 50),
                 const Text(
                   "Don't have an account?",
                   style: TextStyle(color: Colors.white70),

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:http/http.dart' as http;
@@ -629,6 +628,7 @@ class _bukitBintangPageState extends State<bukitBintang> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    cursorColor: Colors.white,
                     onChanged: (value) {
                       reviewText = value;
                     },
@@ -636,6 +636,12 @@ class _bukitBintangPageState extends State<bukitBintang> {
                     decoration: InputDecoration(
                       hintText: 'Enter your review here',
                       hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white70), // White underline when not focused
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white), // White underline when focused
+                      ),
                     ),
                   ),
                   SizedBox(height: 10),

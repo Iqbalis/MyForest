@@ -33,7 +33,6 @@ class _AyamTrailScreen extends State<AyamTrail> {
   Timer? _timer;
   int _elapsedSeconds = 0; // Elapsed time
   double _totalDistance = 0.0; // Total distance
-  double _totalElevationGain = 0.0; // Elevation gain variable
   LatLng? _lastLocation;
 
   // Controller for the map
@@ -319,7 +318,10 @@ class _AyamTrailScreen extends State<AyamTrail> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),  // Curve the top-left corner
+                        topRight: Radius.circular(20.0), // Curve the top-right corner
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -412,7 +414,6 @@ class _AyamTrailScreen extends State<AyamTrail> {
                           offset: Offset(0, -4), // Negative Y offset to push the shadow upwards
                         ),
                       ],
-                      borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     width: double.infinity,

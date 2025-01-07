@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:myforestnew/mountnuang/nuangTrail.dart';
@@ -338,7 +339,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Bukit Sungai Putih Forest Reserve',
+                    'Bukit Kiara Forest Reserve',
                     style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                 ],
@@ -347,7 +348,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => NuangTrail()),
+                    MaterialPageRoute(builder: (context) =>  NuangTrail()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -542,7 +543,6 @@ class _MountNuangPageState extends State<MountNuangPage> {
 
             final reviews = snapshot.data!.docs;
 
-            print("Fetched ${reviews.length} reviews.");
 
             if (reviews.isEmpty) {
               return Text(
@@ -683,8 +683,6 @@ class _MountNuangPageState extends State<MountNuangPage> {
 
 
 
-
-
   void _showReviewInput() {
     String reviewText = '';
     int rating = 0; // Default rating (can enhance with a rating input)
@@ -701,6 +699,7 @@ class _MountNuangPageState extends State<MountNuangPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    cursorColor: Colors.white,
                     onChanged: (value) {
                       reviewText = value;
                     },
@@ -708,6 +707,12 @@ class _MountNuangPageState extends State<MountNuangPage> {
                     decoration: InputDecoration(
                       hintText: 'Enter your review here',
                       hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white70), // White underline when not focused
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white), // White underline when focused
+                      ),
                     ),
                   ),
                   SizedBox(height: 10),

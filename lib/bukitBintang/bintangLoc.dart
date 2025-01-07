@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class bintangLoc extends StatelessWidget {
-  final double latitude = 3.1844;
-  final double longitude = 101.6465;
+  final String location = "Bukit Sri Bintang, Malaysia"; // Place name or query
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +27,7 @@ class bintangLoc extends StatelessWidget {
         ),
         body: Center(
           child: ElevatedButton(
-            onPressed: () => _openMap(latitude, longitude),
+            onPressed: () => _openMap(location),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -43,9 +42,9 @@ class bintangLoc extends StatelessWidget {
     );
   }
 
-  Future<void> _openMap(double lat, double lng) async {
-    // Construct the URL to open Google Maps
-    final googleMapUrl = 'geo:$lat,$lng?q=$lat,$lng';
+  Future<void> _openMap(String location) async {
+    // Construct the Google Maps URL with the location name
+    final googleMapUrl = 'https://www.google.com/maps/place/Bukit+Seri+Bintang,+Kuala+Lumpur,+Federal+Territory+of+Kuala+Lumpur/@3.1843284,101.6435629,17.21z/data=!4m6!3m5!1s0x31cc489bb46f6853:0xc0813579f96e0cf0!8m2!3d3.184365!4d101.646468!16s%2Fg%2F1q5blllgc?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D';
 
     if (await canLaunch(googleMapUrl)) {
       await launch(googleMapUrl);

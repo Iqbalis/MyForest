@@ -105,10 +105,10 @@ class __LoginScreenState extends State<AdminLoginPage> {
               isPassword: true,
               obscureText: true,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 0),
             // Forgot password link
-            Align(
-              alignment: Alignment.centerLeft,
+            Padding(
+              padding: const EdgeInsets.only(right: 190.0),
               child: TextButton(
                 onPressed: () {
                   Navigator.of(context).push(

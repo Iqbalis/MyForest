@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myforestnew/Admin/permitAdmin.dart';
 import 'package:myforestnew/Admin/profileadmin.dart';
-import 'package:myforestnew/Pages/profile.dart';
 import 'package:myforestnew/bukitAyam/bukitAyam.dart';
 import 'package:myforestnew/bukitBintang/bukitBintang.dart';
 import 'package:myforestnew/bukitLagong/bukitLagong.dart';
@@ -151,6 +150,7 @@ class _HomePageState extends State<HomeAdmin> {
   @override
   void initState() {
     super.initState();
+    fetchUserProfile();
     _currentImageIndex = List.filled(mountains.length, 0);
     _filteredMountains = mountains;
     _searchController.addListener(_filterMountains);

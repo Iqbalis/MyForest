@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class hitamLoc extends StatelessWidget {
-  final double latitude = 6.23544650;
-  final double longitude = 100.25720840;
+class hitamloc extends StatelessWidget {
+  final String location = "Mount Hitam, Malaysia"; // Place name or query
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +27,7 @@ class hitamLoc extends StatelessWidget {
         ),
         body: Center(
           child: ElevatedButton(
-            onPressed: () => _openMap(latitude, longitude),
+            onPressed: () => _openMap(location),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -43,9 +42,9 @@ class hitamLoc extends StatelessWidget {
     );
   }
 
-  Future<void> _openMap(double lat, double lng) async {
-    // Construct the URL to open Google Maps
-    final googleMapUrl = 'geo:$lat,$lng?q=$lat,$lng';
+  Future<void> _openMap(String location) async {
+    // Construct the Google Maps URL with the location name
+    final googleMapUrl = 'https://www.google.com/maps/place/Gunung+Hitam/@3.1673052,101.8736765,13z/data=!3m1!4b1!4m6!3m5!1s0x31cc2f12bf1bb2bd:0x3517d49408ad4a79!8m2!3d3.1672222!4d101.9475!16s%2Fg%2F121g1wcv?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D';
 
     if (await canLaunch(googleMapUrl)) {
       await launch(googleMapUrl);

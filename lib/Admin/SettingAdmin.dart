@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myforestnew/Pages/profile.dart';
+import 'package:myforestnew/Admin/profileadmin.dart';
+import 'package:myforestnew/Pages/Login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingAdmin extends StatefulWidget {
@@ -108,7 +109,7 @@ class _SettingState extends State<SettingAdmin> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfilePage()),
+              MaterialPageRoute(builder: (context) => ProfilePageAdmin()),
             );
           },
         ),
@@ -177,21 +178,12 @@ class _SettingState extends State<SettingAdmin> {
               ),
             ),
             SizedBox(height: 16),
-            _buildPressableArrowSection('Account', 'Delete Account', context),
-            SizedBox(height: 32),
-
-            Text(
-              'Legal',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            _buildPressableArrowSection('Legal', 'Terms & Conditions', context),
-            _buildPressableArrowSection('Legal', 'About MyForest', context),
-
+            _buildPressableArrowSection('Account', 'Log Out Account', context, onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            }),
             SizedBox(height: 32),
             _buildSaveButtonAlignedRight(),
           ],
@@ -239,11 +231,9 @@ class _SettingState extends State<SettingAdmin> {
     );
   }
 
-  Widget _buildPressableArrowSection(String sectionTitle, String optionText, BuildContext context) {
+  Widget _buildPressableArrowSection(String sectionTitle, String optionText, BuildContext context, {VoidCallback? onTap}) {
     return InkWell(
-      onTap: () {
-        // Handle tap (Navigate to corresponding page or action)
-      },
+      onTap: onTap ?? () {}, // Use the provided onTap function or do nothing by default
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
@@ -259,6 +249,7 @@ class _SettingState extends State<SettingAdmin> {
       ),
     );
   }
+
 
   Widget _buildSaveButtonAlignedRight() {
     return Align(

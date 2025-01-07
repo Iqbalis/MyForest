@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:myforestnew/bukitPau/pauTrail.dart';
@@ -348,7 +347,7 @@ class _bukitPauPageState extends State<bukitPau> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PauLoc(),
+                      builder: (context) => Pauloc(),
                     ),
                   );
                 },
@@ -670,6 +669,7 @@ class _bukitPauPageState extends State<bukitPau> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    cursorColor: Colors.white,
                     onChanged: (value) {
                       reviewText = value;
                     },
@@ -677,6 +677,12 @@ class _bukitPauPageState extends State<bukitPau> {
                     decoration: InputDecoration(
                       hintText: 'Enter your review here',
                       hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white70), // White underline when not focused
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white), // White underline when focused
+                      ),
                     ),
                   ),
                   SizedBox(height: 10),

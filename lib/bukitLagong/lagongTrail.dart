@@ -32,6 +32,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
   List<double> _elevations = [];
   bool _isTracking = false; // Tracking state
   bool _isPaused = false; // Pause state
+  bool _isDistanceCalculationActive = true; // Flag to control distance calculation
   Timer? _timer;
   int _elapsedSeconds = 0; // Elapsed time
   double _totalDistance = 0.0; // Total distance
@@ -111,13 +112,40 @@ class _LagongTrailScreen extends State<LagongTrail> {
     }
   }
 
+  /// Calculate distance and elevation gain
+  void _calculateDistance(LocationData locationData) {
+    if (_lastLocation != null) {
+      final LatLng currentLocation =
+      LatLng(locationData.latitude!, locationData.longitude!);
+
+      // Check if distance threshold (e.g., 10 meters) is reached
+      final double distance =
+      const Distance().as(LengthUnit.Meter, _lastLocation!, currentLocation);
+
+      if (distance > 10) { // Only update if the user has moved more than 10 meters
+        setState(() {
+          _totalDistance += distance / 1000; // in km
+        });
+
+        // Re-center map if the user moves significantly
+        _lastLocation = currentLocation;
+        _mapController.move(currentLocation, 19.0); // Adjust zoom level as needed
+      }
+    } else {
+      // Initialize the first location
+      _lastLocation = LatLng(locationData.latitude!, locationData.longitude!);
+      _mapController.move(_lastLocation!, 19.0); // Initial center
+    }
+  }
 
   void _startTracking() {
     setState(() {
       _isTracking = true;
       _isPaused = false;
+      _isDistanceCalculationActive = true; // Enable distance calculation
       _isElevationProfileVisible = false;
       _isTrackingStarted = true;
+      _isRecenterVisible = true;
     });
 
     // Start timer
@@ -155,6 +183,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
   void _pauseTracking() {
     setState(() {
       _isPaused = true;
+      _isDistanceCalculationActive = false; // Disable distance calculation
       _isTracking = false;
     });
     _timer?.cancel();
@@ -163,6 +192,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
   void _resumeTracking() {
     setState(() {
       _isPaused = false;
+      _isDistanceCalculationActive = true; // Enable distance calculation
       _isTracking = true;
     });
     _startTracking(); // Restart tracking
@@ -298,30 +328,110 @@ class _LagongTrailScreen extends State<LagongTrail> {
                         : const Center(child: CircularProgressIndicator())
                         : const SizedBox(),
                   ),
+
+                  // Time, Distance
                   Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    width: double.infinity,
-                    child: Column(
-                      children: [
-                        Text(
-                          "Time: ${_formatTime(_elapsedSeconds)}",
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                    margin: const EdgeInsets.all(0),  // Remove any outer margin
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),  // Curve the top-left corner
+                        topRight: Radius.circular(20.0), // Curve the top-right corner
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Distance: ${_totalDistance.toStringAsFixed(2)} km",
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Time and Distance Box
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Time Section
+                            Padding(
+                              padding: const EdgeInsets.only(right: 50.0),  // Increase padding here
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    "Time",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatTime(_elapsedSeconds),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Vertical Line Divider
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 20),
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey.withOpacity(0.5),
+                            ),
+
+                            // Distance Section
+                            Padding(
+                              padding: const EdgeInsets.only(left: 50.0),  // Increase padding here
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    "Distance",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${_totalDistance.toStringAsFixed(2)} km",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
 
-                  // Start, Pause, Resume, Stop Buttons
+                  // Control Buttons
                   Container(
-                    color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1), // Light shadow color
+                          blurRadius: 10, // Blur radius
+                          offset: Offset(0, -4), // Negative Y offset to push the shadow upwards
+                        ),
+                      ],
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     width: double.infinity,
                     child: _isPaused
@@ -334,7 +444,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
                           ),
-                          child: const Text("Resume"),
+                          child: const Text("RESUME"),
                         ),
                         ElevatedButton(
                           onPressed: _stopTracking,
@@ -342,7 +452,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
                           ),
-                          child: const Text("Stop"),
+                          child: const Text("FINISH"),
                         ),
                       ],
                     )
@@ -353,7 +463,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
                           backgroundColor: _isTracking ? Colors.red : Colors.blue,
                           foregroundColor: Colors.white,
                         ),
-                        child: Text(_isTracking ? "Pause" : "Start"),
+                        child: Text(_isTracking ? "PAUSE" : "START"),
                       ),
                     ),
                   ),
