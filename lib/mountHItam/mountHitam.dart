@@ -295,7 +295,7 @@ class _HitamPageState extends State<mountHitam> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Mount Nuang Name + Show Trail Button + Location
+          // Mount Hitam Name + Show Trail Button + Location
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -311,7 +311,7 @@ class _HitamPageState extends State<mountHitam> {
                   SizedBox(height: 4),
                   Text(
                     'Bukit Sungai Putih Forest Reserve',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(fontSize: 15, color: Colors.white70),
                   ),
                 ],
               ),
@@ -319,7 +319,7 @@ class _HitamPageState extends State<mountHitam> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => HitamTrail()),
+                    MaterialPageRoute(builder: (context) =>  HitamTrail()),
                   );
                 },
                 style: ElevatedButton.styleFrom(

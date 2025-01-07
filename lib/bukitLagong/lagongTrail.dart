@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
-import 'package:myforestnew/Pages/HomPage.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-import 'package:http/http.dart' as http;
-
 import '../Resources/elevation_profile.dart';
 
 class LagongTrail extends StatefulWidget {
@@ -92,8 +89,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
       for (var waypoint in waypoints) {
         final lat = double.parse(waypoint.getAttribute('lat')!);
         final lon = double.parse(waypoint.getAttribute('lon')!);
-        final ele =
-            double.tryParse(waypoint.findElements('ele').first.text) ?? 0.0;
+        final ele = double.tryParse(waypoint.findElements('ele').first.text) ?? 0.0;
 
         trailCoordinates.add(LatLng(lat, lon));
         elevations.add(ele);
@@ -158,23 +154,14 @@ class _LagongTrailScreen extends State<LagongTrail> {
     // Start location tracking
     _location.onLocationChanged.listen((LocationData locationData) {
       if (locationData.latitude != null && locationData.longitude != null) {
-        LatLng currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+        setState(() {
+          _currentLocation =
+              LatLng(locationData.latitude!, locationData.longitude!);
+          _isLoading = false;
+        });
 
-        if (_lastLocation != null) {
-          final double distance = const Distance().as(LengthUnit.Meter, _lastLocation!, currentLocation);
-
-          setState(() {
-            _totalDistance += distance / 1000; // in km
-          });
-
-          // Only re-center the map if the user has moved significantly (e.g., 10 meters or more)
-          if (distance > 10) {
-            _lastLocation = currentLocation;
-            _mapController.move(currentLocation, 19.0);  // Adjust zoom level as needed
-          }
-        } else {
-          _lastLocation = currentLocation;
-          _mapController.move(currentLocation, 19.0);  // Initial center
+        if (_isDistanceCalculationActive) {
+          _calculateDistance(locationData);
         }
       }
     });
@@ -250,27 +237,25 @@ class _LagongTrailScreen extends State<LagongTrail> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
         title: const Text(
           "Bukit Lagong",
-          style: TextStyle(fontSize: 20, color: Colors.white),
+          style: TextStyle(fontSize: 20, color: Colors.black),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
       ),
       body: Stack(
         children: [
           _gpxRoute.isEmpty
-              ? const Center(
-            child: CircularProgressIndicator(),
-          )
+              ? const Center(child: CircularProgressIndicator())
               : FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _calculateRouteCenter(_gpxRoute), // Default to trail center
+              initialCenter: _calculateRouteCenter(_gpxRoute),
               initialZoom: 13,
             ),
             children: [
@@ -278,8 +263,6 @@ class _LagongTrailScreen extends State<LagongTrail> {
                 urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
               ),
               CurrentLocationLayer(
-                //alignPositionOnUpdate: AlignOnUpdate.always,
-                //alignDirectionOnUpdate: AlignOnUpdate.never,
                 style: const LocationMarkerStyle(
                   marker: DefaultLocationMarker(
                     child: Icon(
@@ -294,28 +277,28 @@ class _LagongTrailScreen extends State<LagongTrail> {
               if (_currentLocation != null && _gpxRoute.isNotEmpty)
                 PolylineLayer(
                   polylines: [
-                    // Outer dark polyline (border)
                     Polyline(
                       points: _gpxRoute,
-                      strokeWidth: 7.0, // Slightly thicker stroke width
-                      color: Colors.blue.shade900, // Outer dark color
+                      strokeWidth: 7.0,
+                      color: Colors.blue.shade900,
                     ),
-                    // Inner light polyline (main line)
                     Polyline(
                       points: _gpxRoute,
-                      strokeWidth: 4.0, // Slightly thinner stroke width
-                      color: Colors.blue.shade300, // Inner light color
+                      strokeWidth: 4.0,
+                      color: Colors.blue.shade300,
                     ),
                   ],
                 ),
             ],
           ),
+
           Align(
             alignment: Alignment.bottomCenter,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Elevation profile
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     height: _isElevationProfileVisible
@@ -474,7 +457,7 @@ class _LagongTrailScreen extends State<LagongTrail> {
           // Re-center button appears only after tracking starts
           if (_isTrackingStarted && _isRecenterVisible)
             Positioned(
-              bottom: 170, // Set to 16 for some padding from the top of the screen
+              bottom: 180, // Set to 16 for some padding from the top of the screen
               right: 19,
               child: FloatingActionButton(
                 onPressed: _recenterToUserLocation,

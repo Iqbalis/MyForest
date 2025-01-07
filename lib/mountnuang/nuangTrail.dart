@@ -240,16 +240,16 @@ class _NuangTrailScreen extends State<NuangTrail> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
         title: const Text(
           "Mount Nuang",
-          style: TextStyle(fontSize: 20, color: Colors.white),
+          style: TextStyle(fontSize: 20, color: Colors.black),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
       ),
       body: Stack(
         children: [

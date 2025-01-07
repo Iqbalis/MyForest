@@ -292,7 +292,7 @@ class _bukitPauPageState extends State<bukitPau> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Mount Nuang Name + Show Trail Button + Location
+          // Bukit Pau Name + Show Trail Button + Location
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -308,7 +308,7 @@ class _bukitPauPageState extends State<bukitPau> {
                   SizedBox(height: 4),
                   Text(
                     'Bukit Sungai Putih Forest Reserve',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(fontSize: 15, color: Colors.white70),
                   ),
                 ],
               ),

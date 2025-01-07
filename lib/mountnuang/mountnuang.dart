@@ -339,8 +339,8 @@ class _MountNuangPageState extends State<MountNuangPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Bukit Kiara Forest Reserve',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    'Bukit Sungai Putih Forest Reserve',
+                    style: TextStyle(fontSize: 15, color: Colors.white70),
                   ),
                 ],
               ),
